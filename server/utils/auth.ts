@@ -1,7 +1,10 @@
 import type { H3Event } from "h3";
 import { verify } from "./jwt";
 export async function checkLoginStatus(event: H3Event) {
-    const err = new ApiError("unauthorized", "未登录").setHttpStatus(HTTP_STATUS.UNAUTHORIZED);
+    const err = new ApiError({
+        code: "unauthorized",
+        message: "未登录"
+    }).setHttpStatus(HTTP_STATUS.UNAUTHORIZED);
     const token = getHeader(event, AUTH_TOKEN_KEY);
     if (!token) {
         return Promise.reject(err);

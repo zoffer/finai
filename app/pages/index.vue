@@ -250,9 +250,9 @@ const fetchStocks = async () => {
     }
     const data = await response.json()
     
-    // 转换数据格式以匹配前端需求
+    // 转换数据格式以匹配前端需求 - 注意：根据数据库schema变更，使用symbol字段而不是code字段
     stocks.value = data.map(stock => ({
-      symbol: stock.code,
+      symbol: stock.symbol,
       name: stock.name,
       // 为了UI显示更友好，生成一些模拟的价格和变化数据
       price: parseFloat((Math.random() * 100 + 10).toFixed(2)),

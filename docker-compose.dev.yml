@@ -1,12 +1,14 @@
 version: "3.8"
 x-base-service: &bs
-    logging:
-      driver: "json-file"
-      options:
-        max-size: 10m
-        max-file: 3
-    networks:
-      - net
+  logging:
+    driver: "json-file"
+    options:
+      max-size: 10m
+      max-file: 3
+  networks:
+    - net
+  env_file:
+    - .env.dev
 services:
   aktools:
     <<: *bs
@@ -16,6 +18,18 @@ services:
     restart: on-failure:3
     ports:
       - 8080:8080
+  pgdb:
+    <<: *bs
+    image: postgres:18-alpine
+    container_name: finai-pgdb
+    pull_policy: always
+    restart: on-failure:3
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdb-data:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: finai
 volumes:
   pgdb-data:
 networks:
