@@ -1,0 +1,22 @@
+version: "3.8"
+x-base-service: &bs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: 3
+    networks:
+      - net
+services:
+  aktools:
+    <<: *bs
+    image: kkqy/aktools:latest
+    container_name: finai-aktools
+    pull_policy: always
+    restart: on-failure:3
+    ports:
+      - 8080:8080
+volumes:
+  pgdb-data:
+networks:
+  net:
