@@ -150,9 +150,58 @@
               <td class="volume">{{ formatVolume(stock.volume) }}</td>
             </tr>
           </tbody>
-        </table>
+      </table>
+      
+      <!-- 分页控件 -->
+      <div v-if="!isLoading && paginationInfo.total > 0" class="pagination-controls">
+        <div class="pagination-info">
+          共 {{ paginationInfo.total }} 条记录，第 {{ paginationInfo.page }} / {{ paginationInfo.pages }} 页
+        </div>
+        <div class="pagination-buttons">
+          <button 
+            @click="prevPage" 
+            :disabled="currentPage === 1 || isLoading" 
+            class="pagination-btn"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="15" y1="18" x2="9" y2="12"></line>
+              <line x1="9" y1="6" x2="15" y2="12"></line>
+            </svg>
+            上一页
+          </button>
+          
+          <!-- 页码按钮 -->
+            <template v-for="page in visiblePages" :key="page">
+              <!-- 省略号 -->
+              <span v-if="page === '...'" class="pagination-ellipsis">
+                ...
+              </span>
+              <!-- 页码按钮 -->
+              <button
+                v-else
+                @click="goToPage(page)"
+                :disabled="isLoading"
+                :class="['pagination-btn', 'page-btn', { active: currentPage === page }]"
+              >
+                {{ page }}
+              </button>
+            </template>
+          
+          <button 
+            @click="nextPage" 
+            :disabled="currentPage === paginationInfo.pages || isLoading" 
+            class="pagination-btn"
+          >
+            下一页
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="9" y1="18" x2="15" y2="12"></line>
+              <line x1="15" y1="6" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </div>
-    </main>
+    </div>
+  </main>
     
     <footer class="page-footer">
       <div class="footer-content">
@@ -177,6 +226,15 @@ const searchQuery = ref('')
 const sortBy = ref('symbol')
 const sortOrder = ref('asc')
 const lastUpdateTime = ref('')
+// 分页相关状态
+const currentPage = ref(1)
+const pageSize = ref(20)
+const paginationInfo = ref({
+  total: 0,
+  pages: 0,
+  page: 1,
+  limit: 20
+})
 
 // 格式化成交量
 const formatVolume = (volume) => {
@@ -222,7 +280,7 @@ const filteredStocks = computed(() => {
 })
 
 // 计算统计数据
-const totalStocks = computed(() => stocks.value.length)
+const totalStocks = computed(() => paginationInfo.value.total)
 const upStocks = computed(() => stocks.value.filter(stock => stock.change > 0).length)
 const downStocks = computed(() => stocks.value.filter(stock => stock.change < 0).length)
 const totalVolume = computed(() => stocks.value.reduce((sum, stock) => sum + stock.volume, 0))
@@ -243,15 +301,23 @@ const fetchStocks = async () => {
   isLoading.value = true
   
   try {
-    // 调用本地API接口
-    const response = await fetch('/api/stock/list')
+    // 调用本地API接口，添加分页参数
+    const response = await fetch(`/api/stock/list?page=${currentPage.value}&limit=${pageSize.value}`)
     if (!response.ok) {
       throw new Error(`API请求失败: ${response.status}`)
     }
-    const data = await response.json()
+    const result = await response.json()
     
-    // 转换数据格式以匹配前端需求 - 注意：根据数据库schema变更，使用symbol字段而不是code字段
-    stocks.value = data.map(stock => ({
+    // 更新分页信息
+    paginationInfo.value = result.pagination || {
+      total: 0,
+      pages: 0,
+      page: currentPage.value,
+      limit: pageSize.value
+    }
+    
+    // 转换数据格式以匹配前端需求
+    stocks.value = result.data.map(stock => ({
       symbol: stock.symbol,
       name: stock.name,
       // 为了UI显示更友好，生成一些模拟的价格和变化数据
@@ -270,6 +336,13 @@ const fetchStocks = async () => {
       { symbol: '600519', name: '贵州茅台', price: 1890.50, change: 2.15, volume: 3456789 },
       { symbol: '000333', name: '美的集团', price: 56.78, change: 0.89, volume: 7890123 }
     ]
+    // 设置默认分页信息
+    paginationInfo.value = {
+      total: 6,
+      pages: 1,
+      page: 1,
+      limit: pageSize.value
+    }
   } finally {
     isLoading.value = false
     updateLastUpdateTime()
@@ -278,8 +351,71 @@ const fetchStocks = async () => {
 
 // 刷新数据
 const refreshData = () => {
+  currentPage.value = 1 // 刷新时重置到第一页
   fetchStocks()
 }
+
+// 切换到指定页
+const goToPage = (page) => {
+  if (page >= 1 && page <= paginationInfo.value.pages) {
+    currentPage.value = page
+    fetchStocks()
+  }
+}
+
+// 上一页
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    fetchStocks()
+  }
+}
+
+// 下一页
+const nextPage = () => {
+  if (currentPage.value < paginationInfo.value.pages) {
+    currentPage.value++
+    fetchStocks()
+  }
+}
+
+// 计算可见的页码
+const visiblePages = computed(() => {
+  const totalPages = paginationInfo.value.pages
+  const current = currentPage.value
+  const pages = []
+  
+  // 如果总页数小于等于5，显示所有页码
+  if (totalPages <= 5) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i)
+    }
+  } else {
+    // 否则显示当前页附近的页码
+    if (current <= 3) {
+      // 当前页在前3页
+      for (let i = 1; i <= 4; i++) {
+        pages.push(i)
+      }
+      pages.push('...', totalPages)
+    } else if (current >= totalPages - 2) {
+      // 当前页在后3页
+      pages.push(1, '...')
+      for (let i = totalPages - 3; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // 当前页在中间
+      pages.push(1, '...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...', totalPages)
+    }
+  }
+  
+  return pages
+})
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -686,6 +822,104 @@ onMounted(() => {
     color: #6c757d;
     font-size: 1rem;
     margin: 0;
+  }
+}
+
+// 分页控件
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+
+  .pagination-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  .pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .pagination-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      background-color: white;
+      color: #495057;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background-color: #667eea;
+        color: white;
+        border-color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #adb5bd;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      &.page-btn {
+        min-width: 36px;
+        height: 36px;
+        padding: 0.5rem;
+
+        &.active {
+          background-color: #667eea;
+          color: white;
+          border-color: #667eea;
+          font-weight: 600;
+        }
+      }
+    }
+    
+    // 省略号样式
+    .pagination-ellipsis {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// 响应式分页控件
+@media (max-width: 768px) {
+  .pagination-controls {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+
+    .pagination-buttons {
+      flex-wrap: wrap;
+      justify-content: center;
+
+      .pagination-btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.6rem;
+
+        &.page-btn {
+          min-width: 32px;
+          height: 32px;
+        }
+      }
+    }
   }
 }
 
