@@ -1,8 +1,8 @@
 // API接口：获取股票详情
 import { eq } from 'drizzle-orm';
 import type { H3Event } from "h3";
-import { getRouterParam } from "h3";
 import { Stock, StockPrice } from "~~/drizzle/schema/stock";
+import { StockRankTool } from "~~/server/utils/stock/rank/index";
 
 export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: string } }>) => {
   // 获取股票代码参数
@@ -43,6 +43,9 @@ export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: st
 
   // 处理查询结果
   const stock = stockData[0];
+
+  // 计算1小时内的股票排名
+  StockRankTool.$1h.incr(stock.id);
 
   // 构建响应数据
   const responseData = {

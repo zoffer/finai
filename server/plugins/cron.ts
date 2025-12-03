@@ -23,8 +23,8 @@ export default defineNitroPlugin(() => {
     CronJob.from({
         // 更新股票价格
         cronTime: '0 * * * * *',
-        onTick: () => {
-            StockEmitter.emit("stock:some-price");
+        onTick: async () => {
+            await StockRankTool.$1h.rerank();
         },
         start: true,
         timeZone: 'Asia/Shanghai',

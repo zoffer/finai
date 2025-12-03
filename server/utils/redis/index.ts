@@ -1,5 +1,10 @@
 import { createClient } from "redis";
 
-export const rd = await createClient({
+export const rd = createClient({
     url: process.env.REDIS_URL,
-}).on("error", (err) => console.error(err)).connect();
+});
+
+rd.on("error", (err) => console.error(err))
+    .connect()
+    .then(() => rd.ping())
+    .then((res) => console.log("Redis ping:", res));

@@ -7,6 +7,7 @@ interface MyEvents {
     "stock:list": [];
     "stock:all-price": [];
     "stock:some-price": [];
+    "view:stock": [string];
 }
 export const StockEmitter = new EventEmitter<MyEvents>();
 
