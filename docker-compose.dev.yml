@@ -1,5 +1,7 @@
 version: "3.8"
 x-base-service: &bs
+  pull_policy: always
+  restart: on-failure:3
   logging:
     driver: "json-file"
     options:
@@ -14,23 +16,28 @@ services:
     <<: *bs
     image: kkqy/aktools:latest
     container_name: finai-aktools
-    pull_policy: always
-    restart: on-failure:3
     ports:
       - 8080:8080
   pgdb:
     <<: *bs
     image: postgres:18-alpine
     container_name: finai-pgdb
-    pull_policy: always
-    restart: on-failure:3
     ports:
       - 5432:5432
     volumes:
       - pgdb-data:/var/lib/postgresql
     environment:
       POSTGRES_DB: finai
+  redis:
+    <<: *bs
+    image: redis:8-alpine
+    container_name: finai-redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
 volumes:
   pgdb-data:
+  redis-data:
 networks:
   net:

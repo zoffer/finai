@@ -13,7 +13,7 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         // 更新股票价格
-        cronTime: '0 0 * * * *',
+        cronTime: '0 0 8-18 * * *',
         onTick: () => {
             StockEmitter.emit("stock:all-price");
         },
@@ -22,7 +22,7 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         // 更新股票价格
-        cronTime: '30 0/1 * * * *',
+        cronTime: '0 * * * * *',
         onTick: () => {
             StockEmitter.emit("stock:some-price");
         },

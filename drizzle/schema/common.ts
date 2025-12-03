@@ -6,4 +6,4 @@ export const sqlTimestamps = {
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 };
 
-export const customNanoid = customAlphabet("6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz", 16);
+export const customNanoid = customAlphabet("0123456789bcdfghjklmnpqrstvwxyz", 16);

@@ -96,30 +96,15 @@
         <table v-else class="stock-table">
           <thead>
             <tr>
-              <th @click="sortBy = 'symbol'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" class="sortable-header">
+              <th>
                 股票代码
-                <svg v-if="sortBy === 'symbol'" class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <polyline v-if="sortOrder === 'asc'" points="19 12 12 5 5 12"></polyline>
-                  <polyline v-else points="5 12 12 19 19 12"></polyline>
-                </svg>
               </th>
               <th>股票名称</th>
-              <th @click="sortBy = 'price'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" class="sortable-header">
+              <th>
                 当前价格
-                <svg v-if="sortBy === 'price'" class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <polyline v-if="sortOrder === 'asc'" points="19 12 12 5 5 12"></polyline>
-                  <polyline v-else points="5 12 12 19 19 12"></polyline>
-                </svg>
               </th>
-              <th @click="sortBy = 'change'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" class="sortable-header">
+              <th>
                 涨跌幅
-                <svg v-if="sortBy === 'change'" class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <polyline v-if="sortOrder === 'asc'" points="19 12 12 5 5 12"></polyline>
-                  <polyline v-else points="5 12 12 19 19 12"></polyline>
-                </svg>
               </th>
               <th>成交量</th>
             </tr>
@@ -130,6 +115,8 @@
               :key="stock.symbol" 
               class="stock-row animate-in"
               :style="{ animationDelay: `${getAnimationDelay($index)}ms` }"
+              @click="goToDetail(stock.symbol)"
+              :class="{ 'clickable-row': true }"
             >
               <td class="symbol">{{ stock.symbol }}</td>
               <td class="name">{{ stock.name }}</td>
@@ -218,14 +205,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 股票数据状态
 const stocks = ref([])
 const isLoading = ref(false)
 const searchQuery = ref('')
-const sortBy = ref('symbol')
-const sortOrder = ref('asc')
 const lastUpdateTime = ref('')
+const sortBy = ref('symbol')
 // 分页相关状态
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -246,7 +233,7 @@ const formatVolume = (volume) => {
   return volume.toString()
 }
 
-// 计算过滤和排序后的股票数据
+// 计算过滤后的股票数据
 const filteredStocks = computed(() => {
   let result = [...stocks.value]
   
@@ -258,23 +245,6 @@ const filteredStocks = computed(() => {
       stock.name.toLowerCase().includes(query)
     )
   }
-  
-  // 排序
-  result.sort((a, b) => {
-    let valueA = a[sortBy.value]
-    let valueB = b[sortBy.value]
-    
-    if (typeof valueA === 'string') {
-      valueA = valueA.toLowerCase()
-      valueB = valueB.toLowerCase()
-    }
-    
-    if (sortOrder.value === 'asc') {
-      return valueA > valueB ? 1 : -1
-    } else {
-      return valueA < valueB ? 1 : -1
-    }
-  })
   
   return result
 })
@@ -317,14 +287,20 @@ const fetchStocks = async () => {
     }
     
     // 转换数据格式以匹配前端需求
-    stocks.value = result.data.map(stock => ({
-      symbol: stock.symbol,
-      name: stock.name,
-      // 为了UI显示更友好，生成一些模拟的价格和变化数据
-      price: parseFloat((Math.random() * 100 + 10).toFixed(2)),
-      change: parseFloat((Math.random() * 10 - 5).toFixed(2)),
-      volume: Math.floor(Math.random() * 10000000) + 100000
-    }))
+    stocks.value = result.data.map(stock => {
+      // 计算涨跌幅
+      const currentPrice = stock.prices?.price || 0
+      const openPrice = stock.prices?.open || 0
+      const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0
+      
+      return {
+        symbol: stock.symbol,
+        name: stock.name,
+        price: parseFloat(currentPrice.toFixed(2)),
+        change: parseFloat(change.toFixed(2)),
+        volume: stock.prices?.volume || 0
+      }
+    })
   } catch (error) {
     console.error('Error fetching stocks:', error)
     // 出错时使用备用数据，确保UI正常显示
@@ -416,6 +392,12 @@ const visiblePages = computed(() => {
   
   return pages
 })
+
+// 跳转到详情页面
+const router = useRouter()
+const goToDetail = (symbol) => {
+  router.push(`/stock/${symbol}`)
+}
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -648,16 +630,16 @@ onMounted(() => {
 
     &.positive {
       .stat-value {
-        color: #28a745;
+        color: #dc3545; /* 红色 - 中国股市上涨颜色 */
       }
-      border-top: 3px solid #28a745;
+      border-top: 3px solid #dc3545; /* 红色 - 中国股市上涨颜色 */
     }
 
     &.negative {
       .stat-value {
-        color: #dc3545;
+        color: #28a745; /* 绿色 - 中国股市下跌颜色 */
       }
-      border-top: 3px solid #dc3545;
+      border-top: 3px solid #28a745; /* 绿色 - 中国股市下跌颜色 */
     }
   }
 }
@@ -722,6 +704,10 @@ onMounted(() => {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
+      &.clickable-row {
+        cursor: pointer;
+      }
+
       &.animate-in {
         animation: fadeInUp 0.5s ease forwards;
       }
@@ -754,11 +740,11 @@ onMounted(() => {
         gap: 0.25rem;
 
         &.positive {
-          color: #28a745;
+          color: #dc3545; /* 红色 - 中国股市上涨颜色 */
         }
 
         &.negative {
-          color: #dc3545;
+          color: #28a745; /* 绿色 - 中国股市下跌颜色 */
         }
 
         .change-indicator {

@@ -1,5 +1,5 @@
 import { Stock, StockPrice } from "~~/drizzle/schema/stock";
-import { sql } from "drizzle-orm";
+import { sql, inArray } from "drizzle-orm";
 
 export type StockData = {
     symbol: string;
@@ -37,9 +37,9 @@ export const StockCache = {
             symbol: Stock.symbol,
             exchange: Stock.exchange
         }).from(Stock)
-            .where(sql`${Stock.symbol} IN ${list.map((item) => item.symbol)}`);
+            .where(inArray(Stock.symbol, list.map((item) => item.symbol.toUpperCase())));
 
-        const stockMap = new Map(stocks.map((stock) => [stock.exchange + stock.symbol, stock.id]));
+        const stockMap = new Map(stocks.map((stock) => [stock.exchange.toUpperCase() + stock.symbol.toUpperCase(), stock.id]));
 
         const data: Array<Omit<StockPriceData, "symbol" | "exchange"> & { stock_id: string }> = []
 
