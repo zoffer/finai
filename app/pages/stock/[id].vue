@@ -34,7 +34,7 @@
           <line x1="12" y1="16" x2="12" y2="16"></line>
         </svg>
         <p>{{ error }}</p>
-        <button @click="fetchStockDetail" class="retry-button">重试</button>
+        <button @click="refresh()" class="retry-button">重试</button>
       </div>
 
       <!-- 股票详情内容 -->
@@ -76,14 +76,6 @@
               <div class="stat-label">成交量</div>
               <div class="stat-value">{{ formatVolume(stock.volume) }}</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-label">换手率</div>
-              <div class="stat-value">{{ stock.turnoverRate ? stock.turnoverRate.toFixed(2) + '%' : '-' }}</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">市盈率</div>
-              <div class="stat-value">{{ stock.pe ? stock.pe.toFixed(2) : '-' }}</div>
-            </div>
           </div>
         </div>
 
@@ -115,28 +107,27 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script lang="ts" setup>
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAsyncData } from 'nuxt/app'
+import { useNuxtApp } from '#app'
 
 const route = useRoute()
 const router = useRouter()
-const isLoading = ref(false)
-const error = ref('')
-const stock = ref(null)
 const lastUpdateTime = ref('')
 
 // 获取股票ID
-const stockId = computed(() => route.params.id)
+const stockId = computed(() => route.params.id as string)
 
 // 格式化价格
-const formatPrice = (price) => {
+const formatPrice = (price: number | null | undefined) => {
   if (price === null || price === undefined) return '0.00'
-  return parseFloat(price).toFixed(2)
+  return price.toFixed(2)
 }
 
 // 格式化成交量
-const formatVolume = (volume) => {
+const formatVolume = (volume: number | null | undefined) => {
   if (volume === null || volume === undefined) return '0'
   if (volume >= 1000000) {
     return (volume / 1000000).toFixed(2) + 'M'
@@ -147,44 +138,36 @@ const formatVolume = (volume) => {
 }
 
 // 更新最后更新时间
-const updateLastUpdateTime = () => {
+const updateLastUpdateTime = (): void => {
   const now = new Date()
   lastUpdateTime.value = `最后更新: ${now.toLocaleTimeString('zh-CN')}`
 }
 
-// 从API获取股票详情
-const fetchStockDetail = async () => {
-  isLoading.value = true
-  error.value = ''
+// 使用useAsyncData获取股票详情
+const { data: stock, pending: isLoading, error, refresh } = useAsyncData(`stock-${stockId.value}`, async () => {
+  const { $api } = useNuxtApp()
+  const res = await $api("/api/stock/info", {
+    query: { symbol: stockId.value }
+  })
   
-  try {
-    // 调用本地API接口
-    const response = await fetch("/api/stock/info?symbol=" + stockId.value)
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`)
-    }
-    const result = await response.json()
-    
-    // 更新股票数据
-    const stockData = result.data;
-    
-    // 计算涨跌幅
-    const currentPrice = stockData.price || 0;
-    const openPrice = stockData.open || 0;
-    const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0;
-    const changeAmount = currentPrice - openPrice;
-    
-    // 添加涨跌幅数据
-    stockData.change = parseFloat(change.toFixed(2));
-    stockData.changeAmount = parseFloat(changeAmount.toFixed(2));
-    
-    // 更新股票数据
-    stock.value = stockData
-  } catch (err) {
-    console.error('Error fetching stock detail:', err)
-    error.value = '获取股票详情失败，请稍后重试'
-    // 出错时使用模拟数据
-    stock.value = {
+  // 计算涨跌幅
+  const stockData = res.data
+  const currentPrice = stockData?.price || 0
+  const openPrice = stockData?.open || 0
+  const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0
+  const changeAmount = currentPrice - openPrice
+  
+  // 更新最后更新时间
+  updateLastUpdateTime()
+  
+  return {
+    ...stockData,
+    change: parseFloat(change.toFixed(2)),
+    changeAmount: parseFloat(changeAmount.toFixed(2)),
+  }
+}, { 
+  default() {
+    return {
       id: stockId.value,
       symbol: '-',
       name: '-',
@@ -198,21 +181,13 @@ const fetchStockDetail = async () => {
       volume: 0,
       industry: "-"
     }
-  } finally {
-    isLoading.value = false
-    updateLastUpdateTime()
-  }
-}
+  },
+})
 
 // 返回上一页
-const goBack = () => {
+const goBack = (): void => {
   router.back()
 }
-
-// 组件挂载时获取数据
-onMounted(() => {
-  fetchStockDetail()
-})
 </script>
 
 <style scoped lang="scss">

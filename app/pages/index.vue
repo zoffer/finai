@@ -6,9 +6,6 @@
           <h1>股票市场行情</h1>
           <p class="subtitle">实时跟踪您关注的股票</p>
         </div>
-        <div class="header-info">
-          <span class="update-time">{{ lastUpdateTime }}</span>
-        </div>
       </div>
     </header>
     
@@ -33,7 +30,7 @@
             <option value="change">按涨跌幅排序</option>
             <option value="price">按价格排序</option>
           </select>
-          <button @click="refreshData" class="refresh-btn" :disabled="isLoading">
+          <button @click="refreshData()" class="refresh-btn" :disabled="isLoading">
             <svg v-if="!isLoading" class="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>
@@ -53,26 +50,7 @@
           </button>
         </div>
       </div>
-
-      <!-- 数据统计卡片 -->
-      <div class="stats-cards">
-        <div class="stat-card">
-          <div class="stat-value">{{ totalStocks }}</div>
-          <div class="stat-label">股票总数</div>
-        </div>
-        <div class="stat-card positive">
-          <div class="stat-value">{{ upStocks }}</div>
-          <div class="stat-label">上涨股票</div>
-        </div>
-        <div class="stat-card negative">
-          <div class="stat-value">{{ downStocks }}</div>
-          <div class="stat-label">下跌股票</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatVolume(totalVolume) }}</div>
-          <div class="stat-label">总成交量</div>
-        </div>
-      </div>
+      
       
       <!-- 股票表格 -->
       <div class="stock-table-wrapper">
@@ -96,25 +74,19 @@
         <table v-else class="stock-table">
           <thead>
             <tr>
-              <th>
-                股票代码
-              </th>
+              <th> 股票代码 </th>
               <th>股票名称</th>
-              <th>
-                当前价格
-              </th>
-              <th>
-                涨跌幅
-              </th>
-              <th>成交量</th>
+              <th> 当前价格 </th>
+              <th> 涨跌幅 </th>
+              <th>成交额</th>
             </tr>
           </thead>
           <tbody>
             <tr 
-              v-for="stock in filteredStocks" 
+              v-for="stock, i in filteredStocks" 
               :key="stock.symbol" 
               class="stock-row animate-in"
-              :style="{ animationDelay: `${getAnimationDelay($index)}ms` }"
+              :style="{ animationDelay: `${getAnimationDelay(i)}ms` }"
               @click="goToDetail(stock.symbol)"
               :class="{ 'clickable-row': true }"
             >
@@ -134,59 +106,12 @@
                 </span>
                 {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
               </td>
-              <td class="volume">{{ formatVolume(stock.volume) }}</td>
+              <td class="volume">{{ formatVolume(stock.turnover) }}</td>
             </tr>
           </tbody>
       </table>
       
-      <!-- 分页控件 -->
-      <div v-if="!isLoading && paginationInfo.total > 0" class="pagination-controls">
-        <div class="pagination-info">
-          共 {{ paginationInfo.total }} 条记录，第 {{ paginationInfo.page }} / {{ paginationInfo.pages }} 页
-        </div>
-        <div class="pagination-buttons">
-          <button 
-            @click="prevPage" 
-            :disabled="currentPage === 1 || isLoading" 
-            class="pagination-btn"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="15" y1="18" x2="9" y2="12"></line>
-              <line x1="9" y1="6" x2="15" y2="12"></line>
-            </svg>
-            上一页
-          </button>
-          
-          <!-- 页码按钮 -->
-            <template v-for="page in visiblePages" :key="page">
-              <!-- 省略号 -->
-              <span v-if="page === '...'" class="pagination-ellipsis">
-                ...
-              </span>
-              <!-- 页码按钮 -->
-              <button
-                v-else
-                @click="goToPage(page)"
-                :disabled="isLoading"
-                :class="['pagination-btn', 'page-btn', { active: currentPage === page }]"
-              >
-                {{ page }}
-              </button>
-            </template>
-          
-          <button 
-            @click="nextPage" 
-            :disabled="currentPage === paginationInfo.pages || isLoading" 
-            class="pagination-btn"
-          >
-            下一页
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="9" y1="18" x2="15" y2="12"></line>
-              <line x1="15" y1="6" x2="9" y2="12"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
+
     </div>
   </main>
     
@@ -203,28 +128,18 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
+<script lang="ts" setup>
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+const { $api } = useNuxtApp()
+
 // 股票数据状态
-const stocks = ref([])
-const isLoading = ref(false)
 const searchQuery = ref('')
-const lastUpdateTime = ref('')
 const sortBy = ref('symbol')
-// 分页相关状态
-const currentPage = ref(1)
-const pageSize = ref(20)
-const paginationInfo = ref({
-  total: 0,
-  pages: 0,
-  page: 1,
-  limit: 20
-})
 
 // 格式化成交量
-const formatVolume = (volume) => {
+const formatVolume = (volume: number) => {
   if (volume >= 1000000) {
     return (volume / 1000000).toFixed(2) + 'M'
   } else if (volume >= 1000) {
@@ -235,7 +150,7 @@ const formatVolume = (volume) => {
 
 // 计算过滤后的股票数据
 const filteredStocks = computed(() => {
-  let result = [...stocks.value]
+  let result = stocks.value ? stocks.value : []
   
   // 搜索过滤
   if (searchQuery.value) {
@@ -249,160 +164,34 @@ const filteredStocks = computed(() => {
   return result
 })
 
-// 计算统计数据
-const totalStocks = computed(() => paginationInfo.value.total)
-const upStocks = computed(() => stocks.value.filter(stock => stock.change > 0).length)
-const downStocks = computed(() => stocks.value.filter(stock => stock.change < 0).length)
-const totalVolume = computed(() => stocks.value.reduce((sum, stock) => sum + stock.volume, 0))
-
 // 获取动画延迟，创建交错效果
-const getAnimationDelay = (index) => {
+const getAnimationDelay = (index: number) => {
   return index * 30
 }
 
-// 更新最后更新时间
-const updateLastUpdateTime = () => {
-  const now = new Date()
-  lastUpdateTime.value = `最后更新: ${now.toLocaleTimeString('zh-CN')}`
-}
-
-// 从API获取股票数据
-const fetchStocks = async () => {
-  isLoading.value = true
-  
-  try {
-    // 调用本地API接口，添加分页参数
-    const response = await fetch(`/api/stock/list?page=${currentPage.value}&limit=${pageSize.value}`)
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`)
-    }
-    const result = await response.json()
-    
-    // 更新分页信息
-    paginationInfo.value = result.pagination || {
-      total: 0,
-      pages: 0,
-      page: currentPage.value,
-      limit: pageSize.value
-    }
-    
-    // 转换数据格式以匹配前端需求
-    stocks.value = result.data.map(stock => {
-      // 计算涨跌幅
-      const currentPrice = stock.prices?.price || 0
-      const openPrice = stock.prices?.open || 0
-      const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0
-      
-      return {
-        symbol: stock.symbol,
-        name: stock.name,
-        price: parseFloat(currentPrice.toFixed(2)),
-        change: parseFloat(change.toFixed(2)),
-        volume: stock.prices?.volume || 0
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching stocks:', error)
-    // 出错时使用备用数据，确保UI正常显示
-    stocks.value = [
-      { symbol: '000001', name: '平安银行', price: 12.56, change: 1.23, volume: 12567890 },
-      { symbol: '000002', name: '万科A', price: 18.76, change: -0.89, volume: 8934567 },
-      { symbol: '600036', name: '招商银行', price: 35.21, change: 0.56, volume: 9876543 },
-      { symbol: '000858', name: '五粮液', price: 168.90, change: -1.34, volume: 5678901 },
-      { symbol: '600519', name: '贵州茅台', price: 1890.50, change: 2.15, volume: 3456789 },
-      { symbol: '000333', name: '美的集团', price: 56.78, change: 0.89, volume: 7890123 }
-    ]
-    // 设置默认分页信息
-    paginationInfo.value = {
-      total: 6,
-      pages: 1,
-      page: 1,
-      limit: pageSize.value
-    }
-  } finally {
-    isLoading.value = false
-    updateLastUpdateTime()
-  }
-}
-
-// 刷新数据
-const refreshData = () => {
-  currentPage.value = 1 // 刷新时重置到第一页
-  fetchStocks()
-}
-
-// 切换到指定页
-const goToPage = (page) => {
-  if (page >= 1 && page <= paginationInfo.value.pages) {
-    currentPage.value = page
-    fetchStocks()
-  }
-}
-
-// 上一页
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-    fetchStocks()
-  }
-}
-
-// 下一页
-const nextPage = () => {
-  if (currentPage.value < paginationInfo.value.pages) {
-    currentPage.value++
-    fetchStocks()
-  }
-}
-
-// 计算可见的页码
-const visiblePages = computed(() => {
-  const totalPages = paginationInfo.value.pages
-  const current = currentPage.value
-  const pages = []
-  
-  // 如果总页数小于等于5，显示所有页码
-  if (totalPages <= 5) {
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(i)
-    }
-  } else {
-    // 否则显示当前页附近的页码
-    if (current <= 3) {
-      // 当前页在前3页
-      for (let i = 1; i <= 4; i++) {
-        pages.push(i)
-      }
-      pages.push('...', totalPages)
-    } else if (current >= totalPages - 2) {
-      // 当前页在后3页
-      pages.push(1, '...')
-      for (let i = totalPages - 3; i <= totalPages; i++) {
-        pages.push(i)
-      }
-    } else {
-      // 当前页在中间
-      pages.push(1, '...')
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i)
-      }
-      pages.push('...', totalPages)
-    }
-  }
-  
-  return pages
+const { data: stocks, pending: isLoading, refresh: refreshData } = useAsyncData(async () => {
+  const res = await $api("/api/stock/list/hot", {
+    query: { size: 100 }
+  })
+  return res.data.map(stock => {
+        // 计算涨跌幅
+        const currentPrice = stock.price || 0
+        const openPrice = stock.open || 0
+        const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0
+        
+        return {
+          ...stock,
+          change: parseFloat(change.toFixed(2)),
+        }
+      })
 })
 
 // 跳转到详情页面
 const router = useRouter()
-const goToDetail = (symbol) => {
+const goToDetail = (symbol: string) => {
   router.push(`/stock/${symbol}`)
 }
 
-// 组件挂载时获取数据
-onMounted(() => {
-  fetchStocks()
-})
 </script>
 
 <style scoped lang="scss">
@@ -591,55 +380,6 @@ onMounted(() => {
       .loading-icon {
         animation: spin 1s linear infinite;
       }
-    }
-  }
-}
-
-// 统计卡片
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-
-  .stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    text-align: center;
-
-    &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      color: #495057;
-    }
-
-    .stat-label {
-      font-size: 0.9rem;
-      color: #6c757d;
-      font-weight: 500;
-    }
-
-    &.positive {
-      .stat-value {
-        color: #dc3545; /* 红色 - 中国股市上涨颜色 */
-      }
-      border-top: 3px solid #dc3545; /* 红色 - 中国股市上涨颜色 */
-    }
-
-    &.negative {
-      .stat-value {
-        color: #28a745; /* 绿色 - 中国股市下跌颜色 */
-      }
-      border-top: 3px solid #28a745; /* 绿色 - 中国股市下跌颜色 */
     }
   }
 }

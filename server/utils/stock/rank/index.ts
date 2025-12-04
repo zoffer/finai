@@ -6,10 +6,10 @@ class RankTool {
         this.#period = period;
     }
     #key(id: string) {
-        return `stock:view:${this.#name}:${id}`;
+        return `stock:visit:count:${this.#name}:${id}`;
     }
     get #rankKey() {
-        return `stock:rank:view:${this.#name}`;
+        return `stock:visit:rank:${this.#name}`;
     }
     async incr(id: string) {
         const key = this.#key(id);
@@ -34,7 +34,9 @@ class RankTool {
                 }
             }))
         }
-        await rd.MULTI().DEL(this.#rankKey).ZADD(this.#rankKey, list).EXEC();
+        if (list.length > 0) {
+            await rd.MULTI().DEL(this.#rankKey).ZADD(this.#rankKey, list).EXEC();
+        }
     }
     async range(start: number, end: number) {
         return await rd.ZRANGE_WITHSCORES(this.#rankKey, start, end, {
@@ -44,5 +46,5 @@ class RankTool {
 }
 
 export const StockRankTool = Object.freeze({
-    $1h: new RankTool("1h", 60 * 60 * 1000),
+    v24h: new RankTool("24h", 24 * 60 * 60 * 1000),
 })

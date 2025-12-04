@@ -1,4 +1,4 @@
-import type { StockPriceData } from "~~/server/utils/stock/cache";
+import type { DynamicData } from "~~/server/utils/stock/cache";
 
 const AKTOOLS_URL = process.env.AKTOOLS_URL;
 
@@ -36,7 +36,7 @@ function parsePastBeijingTimeUTC(timeStr: string) {
     return result;
 }
 
-export async function crawlStockRealTimePrice(): Promise<Array<StockPriceData>> {
+export async function crawlStockRealTimePrice(): Promise<Array<DynamicData>> {
     type AkStockPrice = {
         "代码": string,
         "名称": string,
@@ -65,9 +65,10 @@ export async function crawlStockRealTimePrice(): Promise<Array<StockPriceData>> 
             high: r["最高"], // 最高价
             low: r["最低"], // 最低价
             volume: r["成交量"], // 成交量
+            turnover: r["成交额"], // 成交额
             change_percent: r["涨跌幅"], // 涨跌幅
             change_amount: r["涨跌额"], // 涨跌额
-            data_time: parsePastBeijingTimeUTC(r["时间戳"]), // 数据时间戳
+            market_data_time: parsePastBeijingTimeUTC(r["时间戳"]), // 数据时间戳
         }
     })
 }

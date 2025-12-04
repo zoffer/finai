@@ -1,5 +1,5 @@
 import { sqlTimestamps, customNanoid } from "./common";
-import { pgTable, text, index, uniqueIndex, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, index, uniqueIndex, numeric, timestamp, integer, real } from "drizzle-orm/pg-core";
 
 // 股票基本信息表
 export const Stock = pgTable("stock", {
@@ -18,20 +18,23 @@ export const Stock = pgTable("stock", {
     index().on(table.name),
 ]);
 
-// 实时股票信息表
-export const StockPrice = pgTable("stock_price", {
+export const StockDynamicData = pgTable("stock_dynamic_data", {
     id: text().primaryKey().$default(() => customNanoid(16)),
-    stock_id: text().notNull(), // 关联到stock表的外键
+    stock_id: text().notNull().unique(), // 关联到stock表的外键
+    // 市场信息
     price: numeric({ mode: 'number' }).notNull(), // 当前价格
     open: numeric({ mode: 'number' }).notNull(), // 开盘价
     high: numeric({ mode: 'number' }).notNull(), // 最高价
     low: numeric({ mode: 'number' }).notNull(), // 最低价
     volume: numeric({ mode: 'number' }).notNull(), // 成交量
-    data_time: timestamp({ withTimezone: true }).notNull(), // 数据时间戳
+    turnover: numeric({ mode: 'number' }).notNull(), // 成交额
+    market_data_time: timestamp({ withTimezone: true }).notNull(), // 数据时间戳
+    // 网站信息
+    visits_24h: integer().notNull().default(0), // 24小时访问量
+    heat_score: real().notNull().default(0), // 热榜分数
     updated_at: sqlTimestamps.updated_at, // 最后更新时间
 }, (table) => [
     // 添加索引以提高查询性能
-    uniqueIndex().on(table.stock_id),
 ]);
 
 

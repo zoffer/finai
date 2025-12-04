@@ -1,7 +1,7 @@
 // API接口：获取股票详情
 import { eq } from 'drizzle-orm';
 import type { H3Event } from "h3";
-import { Stock, StockPrice } from "~~/drizzle/schema/stock";
+import { Stock, StockDynamicData } from "~~/drizzle/schema/stock";
 import { StockRankTool } from "~~/server/utils/stock/rank/index";
 
 export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: string } }>) => {
@@ -22,15 +22,16 @@ export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: st
     exchange: Stock.exchange,
     name: Stock.name,
     industry: Stock.industry,
-    price: StockPrice.price,
-    open: StockPrice.open,
-    high: StockPrice.high,
-    low: StockPrice.low,
-    volume: StockPrice.volume,
-    data_time: StockPrice.data_time
+    price: StockDynamicData.price,
+    open: StockDynamicData.open,
+    high: StockDynamicData.high,
+    low: StockDynamicData.low,
+    volume: StockDynamicData.volume,
+    turnover: StockDynamicData.turnover,
+    data_time: StockDynamicData.market_data_time
   })
-    .from(Stock)
-    .leftJoin(StockPrice, eq(Stock.id, StockPrice.stock_id))
+    .from(StockDynamicData)
+    .innerJoin(Stock, eq(Stock.id, StockDynamicData.stock_id))
     .where(eq(Stock.symbol, symbol))
     .limit(1);
 
@@ -44,25 +45,10 @@ export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: st
   // 处理查询结果
   const stock = stockData[0];
 
-  // 计算1小时内的股票排名
-  StockRankTool.$1h.incr(stock.id);
-
-  // 构建响应数据
-  const responseData = {
-    id: stock.id,
-    symbol: stock.symbol,
-    exchange: stock.exchange,
-    name: stock.name,
-    industry: stock.industry,
-    price: stock.price || 0,
-    open: stock.open || 0,
-    high: stock.high || 0,
-    low: stock.low || 0,
-    volume: stock.volume || 0,
-    updatedAt: stock.data_time || new Date()
-  };
+  // 增加1天内的股票排名
+  StockRankTool.v24h.incr(stock.id);
 
   return {
-    data: responseData
+    data: stock
   };
 });
