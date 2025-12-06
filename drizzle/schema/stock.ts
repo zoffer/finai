@@ -33,8 +33,17 @@ export const StockDynamicData = pgTable("stock_dynamic_data", {
     visits_24h: integer().notNull().default(0), // 24小时访问量
     heat_score: real().notNull().default(0), // 热榜分数
     updated_at: sqlTimestamps.updated_at, // 最后更新时间
-}, (table) => [
-    // 添加索引以提高查询性能
+});
+
+export const StockKeyword = pgTable("stock_keyword", {
+    id: text().primaryKey().$default(() => customNanoid(16)),
+    stock_id: text().notNull(), // 关联到stock表的外键
+    keyword: text().notNull(), // 股票关键词
+    weight: real().notNull().default(0), // 关键词权重
+    ...sqlTimestamps,
+}, (t) => [
+    uniqueIndex().on(t.stock_id, t.keyword),
+    index().on(t.keyword),
 ]);
 
 
