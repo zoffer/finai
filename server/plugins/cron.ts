@@ -34,7 +34,7 @@ export default defineNitroPlugin(() => {
         ...common,
         cronTime: '0 0 3 * * *',
         onTick: async () => {
-            await generateBatchStockKeywords(10);
+            await batchUpdateStockKeywords(100);
         },
         runOnInit: true,
     });

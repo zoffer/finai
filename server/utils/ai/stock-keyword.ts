@@ -3,8 +3,7 @@ import { z } from "zod";
 import { crawlXQStockInfo } from "~~/server/utils/stock/source/aktools/info-xq";
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { StockKeyword, Stock, StockDynamicData } from '~~/drizzle/schema/stock';
-import { sql, and, eq, max } from 'drizzle-orm';
-import PQueue from 'p-queue';
+import { sql, and, eq, max, or, lt, isNull } from 'drizzle-orm';
 
 const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY,
@@ -31,24 +30,25 @@ const SystemPrompt = `你是一名专业的证券分析与自然语言处理（N
 class LogStream {
     private log = "";
     write(text: string) {
-        this.log += text;
-        const list = this.log.split("\n");
-        if (list.length > 1) {
-            for (let i = 0; i < list.length - 1; i++) {
-                console.log(list[i]);
+        if (import.meta.dev) {
+            this.log += text;
+            const list = this.log.split("\n");
+            if (list.length > 1) {
+                for (let i = 0; i < list.length - 1; i++) {
+                    console.log(list[i]);
+                }
+                this.log = list[list.length - 1];
             }
-            this.log = list[list.length - 1];
         }
     }
 }
 
 async function generateStockKeywords(stock: { symbol: string, exchange: string }) {
     console.log('Start processing stock keywords for', stock);
-    const code = stock.exchange + stock.symbol;
-    const infos = await crawlXQStockInfo(code);
+    const infos = await crawlXQStockInfo(stock);
     infos.push({ item: "symbol", value: stock.symbol, })
     infos.push({ item: "exchange", value: stock.exchange, })
-    const { fullStream, text } = streamText({
+    const { fullStream, text, usage } = streamText({
         model: deepseek("deepseek-reasoner"),
         system: SystemPrompt,
         temperature: 0,
@@ -63,11 +63,16 @@ async function generateStockKeywords(stock: { symbol: string, exchange: string }
         }
     }
 
-    const list = await z.array(z.object({
+    console.log("AI usage:", await usage);
+
+    return await z.array(z.object({
         keyword: z.string(),
         weight: z.number().min(0).max(1),
     })).parse(JSON.parse(await text));
 
+}
+
+async function saveStockKeywords(stock: { symbol: string, exchange: string }, keywords: { keyword: string, weight: number }[]) {
     await db.transaction(async (tx) => {
         const stocks = await tx.select({ id: Stock.id })
             .from(Stock)
@@ -76,11 +81,12 @@ async function generateStockKeywords(stock: { symbol: string, exchange: string }
             throw new Error("Stock not found");
         }
         const id = stocks[0].id;
-        await tx.insert(StockKeyword).values(list.map(item => ({
+        const values = keywords.map(item => ({
             stock_id: id,
             keyword: item.keyword,
             weight: item.weight,
-        }))).onConflictDoUpdate({
+        }))
+        await tx.insert(StockKeyword).values(values).onConflictDoUpdate({
             target: [StockKeyword.stock_id, StockKeyword.keyword],
             set: {
                 weight: sql`EXCLUDED.weight`,
@@ -90,8 +96,7 @@ async function generateStockKeywords(stock: { symbol: string, exchange: string }
     })
 }
 
-export async function generateBatchStockKeywords(num: number = 10) {
-    const queue = new PQueue({ concurrency: 1 });
+export async function batchUpdateStockKeywords(num: number = 10) {
     const stocks = await db
         .select({
             id: Stock.id,
@@ -103,13 +108,16 @@ export async function generateBatchStockKeywords(num: number = 10) {
         .leftJoin(StockKeyword, eq(Stock.id, StockKeyword.stock_id))
         .leftJoin(StockDynamicData, eq(Stock.id, StockDynamicData.stock_id))
         .groupBy(Stock.id)
-        .orderBy(
-            sql`${max(StockKeyword.updated_at)} ASC NULLS FIRST`,
-            sql`${max(StockDynamicData.turnover)} DESC NULLS LAST`,
-        )
+        .having(or(
+            isNull(max(StockKeyword.updated_at)),
+            lt(max(StockKeyword.updated_at), sql`NOW() - INTERVAL '60 days'`),
+        ))
+        .orderBy(sql`${max(StockDynamicData.turnover)} DESC NULLS LAST`)
         .limit(num)
     for (const stock of stocks) {
-        queue.add(() => generateStockKeywords(stock));
+        AiTaskQueue.add(async () => {
+            const keywords = await generateStockKeywords(stock)
+            await saveStockKeywords(stock, keywords)
+        });
     }
-    await queue.onIdle();
 }
