@@ -1,5 +1,5 @@
 const NUXT_AKTOOLS_URL = process.env.AKTOOLS_URL;
-import { Stock } from "~~/drizzle/schema/stock";
+import { tStock } from "~~/drizzle/schema/stock";
 import { eq, and, sql } from "drizzle-orm";
 
 type Data = {
@@ -18,9 +18,9 @@ export async function crawlXQStockInfo(stock: { symbol: string, exchange: string
     for (const item of res) {
         if (item.item === "org_cn_introduction") {
             const introduction = item.value as string;
-            await db.update(Stock)
+            await db.update(tStock)
                 .set({ introduction, updated_at: sql`NOW()` })
-                .where(and(eq(Stock.symbol, stock.symbol), eq(Stock.exchange, stock.exchange)));
+                .where(and(eq(tStock.symbol, stock.symbol), eq(tStock.exchange, stock.exchange)));
             break
         }
     }

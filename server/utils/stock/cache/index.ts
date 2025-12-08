@@ -1,4 +1,4 @@
-import { Stock, StockDynamicData } from "~~/drizzle/schema/stock";
+import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
 import { sql, inArray } from "drizzle-orm";
 
 export type StockData = {
@@ -35,8 +35,8 @@ function calcHeatScore(item: DynamicData, visits_24h: number) {
 
 export const StockCache = {
     async saveStock(data: Array<StockData>) {
-        await db.insert(Stock).values(data).onConflictDoUpdate({
-            target: [Stock.symbol, Stock.exchange],
+        await db.insert(tStock).values(data).onConflictDoUpdate({
+            target: [tStock.symbol, tStock.exchange],
             set: {
                 name: sql`EXCLUDED.name`,
                 industry: sql`EXCLUDED.industry`,
@@ -47,11 +47,11 @@ export const StockCache = {
     async saveStockDynamicData(list: Array<DynamicData>) {
 
         const stocks = await db.select({
-            id: Stock.id,
-            symbol: Stock.symbol,
-            exchange: Stock.exchange
-        }).from(Stock)
-            .where(inArray(Stock.symbol, list.map((item) => item.symbol.toUpperCase())));
+            id: tStock.id,
+            symbol: tStock.symbol,
+            exchange: tStock.exchange
+        }).from(tStock)
+            .where(inArray(tStock.symbol, list.map((item) => item.symbol.toUpperCase())));
 
         const stockMap = new Map(stocks.map((stock) => [stock.exchange.toUpperCase() + stock.symbol.toUpperCase(), stock.id]));
 
@@ -76,8 +76,8 @@ export const StockCache = {
             }
         }
 
-        await db.insert(StockDynamicData).values(data).onConflictDoUpdate({
-            target: [StockDynamicData.stock_id],
+        await db.insert(tStockDynamicData).values(data).onConflictDoUpdate({
+            target: [tStockDynamicData.stock_id],
             set: {
                 price: sql`EXCLUDED.price`,
                 open: sql`EXCLUDED.open`,

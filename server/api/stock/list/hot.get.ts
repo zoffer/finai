@@ -2,7 +2,7 @@
 import { eq, desc } from 'drizzle-orm';
 import type { H3Event } from "h3";
 import { getQuery } from "h3";
-import { Stock, StockDynamicData } from "~~/drizzle/schema/stock";
+import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
 
 export default defineApiEventHandler(async (event: H3Event<{
   query: { size?: string; }
@@ -13,22 +13,22 @@ export default defineApiEventHandler(async (event: H3Event<{
   const limitNum = parseInt(size as string) || 100;
 
   const stocks = await db.select({
-    id: Stock.id,
-    symbol: Stock.symbol,
-    exchange: Stock.exchange,
-    name: Stock.name,
-    price: StockDynamicData.price,
-    open: StockDynamicData.open,
-    high: StockDynamicData.high,
-    low: StockDynamicData.low,
-    volume: StockDynamicData.volume,
-    turnover: StockDynamicData.turnover,
-    market_data_time: StockDynamicData.market_data_time,
-    visits_24h: StockDynamicData.visits_24h,
-    heat_score: StockDynamicData.heat_score,
+    id: tStock.id,
+    symbol: tStock.symbol,
+    exchange: tStock.exchange,
+    name: tStock.name,
+    price: tStockDynamicData.price,
+    open: tStockDynamicData.open,
+    high: tStockDynamicData.high,
+    low: tStockDynamicData.low,
+    volume: tStockDynamicData.volume,
+    turnover: tStockDynamicData.turnover,
+    market_data_time: tStockDynamicData.market_data_time,
+    visits_24h: tStockDynamicData.visits_24h,
+    heat_score: tStockDynamicData.heat_score,
   })
-    .from(StockDynamicData)
-    .innerJoin(Stock, eq(Stock.id, StockDynamicData.stock_id)).orderBy(desc(StockDynamicData.heat_score)).limit(limitNum);
+    .from(tStockDynamicData)
+    .innerJoin(tStock, eq(tStock.id, tStockDynamicData.stock_id)).orderBy(desc(tStockDynamicData.heat_score)).limit(limitNum);
 
   return { data: stocks };
 });

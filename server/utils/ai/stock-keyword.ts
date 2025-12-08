@@ -2,8 +2,9 @@ import { streamText } from "ai";
 import { z } from "zod";
 import { crawlXQStockInfo } from "~~/server/utils/stock/source/aktools/info-xq";
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { StockKeyword, Stock, StockDynamicData } from '~~/drizzle/schema/stock';
+import { tStockKeyword, tStock, tStockDynamicData } from '~~/drizzle/schema/stock';
 import { sql, and, eq, max, or, lt, isNull } from 'drizzle-orm';
+import { runAiTask } from "./common";
 
 const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY,
@@ -27,56 +28,22 @@ const SystemPrompt = `你是一名专业的证券分析与自然语言处理（N
 - 每个元素必须包含 keyword、weight 字段
 `;
 
-class LogStream {
-    private log = "";
-    write(text: string) {
-        if (import.meta.dev) {
-            this.log += text;
-            const list = this.log.split("\n");
-            if (list.length > 1) {
-                for (let i = 0; i < list.length - 1; i++) {
-                    console.log(list[i]);
-                }
-                this.log = list[list.length - 1];
-            }
-        }
-    }
-}
-
 async function generateStockKeywords(stock: { symbol: string, exchange: string }) {
     console.log('Start processing stock keywords for', stock);
     const infos = await crawlXQStockInfo(stock);
     infos.push({ item: "symbol", value: stock.symbol, })
     infos.push({ item: "exchange", value: stock.exchange, })
-    const { fullStream, text, usage } = streamText({
-        model: deepseek("deepseek-reasoner"),
-        system: SystemPrompt,
-        temperature: 0,
-        prompt: JSON.stringify(infos),
-    });
-    const logStream = new LogStream();
-    for await (const part of fullStream) {
-        if (part.type === 'reasoning-delta') {
-            logStream.write(part.text);
-        } else if (part.type === 'text-delta') {
-            logStream.write(part.text);
-        }
-    }
-
-    console.log("AI usage:", await usage);
-
-    return await z.array(z.object({
+    return await runAiTask(SystemPrompt, JSON.stringify(infos), z.array(z.object({
         keyword: z.string(),
         weight: z.number().min(0).max(1),
-    })).parse(JSON.parse(await text));
-
+    })));
 }
 
 async function saveStockKeywords(stock: { symbol: string, exchange: string }, keywords: { keyword: string, weight: number }[]) {
     await db.transaction(async (tx) => {
-        const stocks = await tx.select({ id: Stock.id })
-            .from(Stock)
-            .where(and(eq(Stock.symbol, stock.symbol), eq(Stock.exchange, stock.exchange)));
+        const stocks = await tx.select({ id: tStock.id })
+            .from(tStock)
+            .where(and(eq(tStock.symbol, stock.symbol), eq(tStock.exchange, stock.exchange)));
         if (stocks.length === 0) {
             throw new Error("Stock not found");
         }
@@ -86,8 +53,8 @@ async function saveStockKeywords(stock: { symbol: string, exchange: string }, ke
             keyword: item.keyword,
             weight: item.weight,
         }))
-        await tx.insert(StockKeyword).values(values).onConflictDoUpdate({
-            target: [StockKeyword.stock_id, StockKeyword.keyword],
+        await tx.insert(tStockKeyword).values(values).onConflictDoUpdate({
+            target: [tStockKeyword.stock_id, tStockKeyword.keyword],
             set: {
                 weight: sql`EXCLUDED.weight`,
                 updated_at: sql`NOW()`,
@@ -99,20 +66,20 @@ async function saveStockKeywords(stock: { symbol: string, exchange: string }, ke
 export async function batchUpdateStockKeywords(num: number = 10) {
     const stocks = await db
         .select({
-            id: Stock.id,
-            name: Stock.name,
-            exchange: Stock.exchange,
-            symbol: Stock.symbol,
+            id: tStock.id,
+            name: tStock.name,
+            exchange: tStock.exchange,
+            symbol: tStock.symbol,
         })
-        .from(Stock)
-        .leftJoin(StockKeyword, eq(Stock.id, StockKeyword.stock_id))
-        .leftJoin(StockDynamicData, eq(Stock.id, StockDynamicData.stock_id))
-        .groupBy(Stock.id)
+        .from(tStock)
+        .leftJoin(tStockKeyword, eq(tStock.id, tStockKeyword.stock_id))
+        .leftJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
+        .groupBy(tStock.id)
         .having(or(
-            isNull(max(StockKeyword.updated_at)),
-            lt(max(StockKeyword.updated_at), sql`NOW() - INTERVAL '60 days'`),
+            isNull(max(tStockKeyword.updated_at)),
+            lt(max(tStockKeyword.updated_at), sql`NOW() - INTERVAL '60 days'`),
         ))
-        .orderBy(sql`${max(StockDynamicData.turnover)} DESC NULLS LAST`)
+        .orderBy(sql`${max(tStockDynamicData.turnover)} DESC NULLS LAST`)
         .limit(num)
     for (const stock of stocks) {
         AiTaskQueue.add(async () => {
