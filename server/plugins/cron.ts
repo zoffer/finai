@@ -1,8 +1,6 @@
 import { CronJob } from 'cron';
 import { StockEmitter } from '../utils/stock/index';
-import { NewsAnalyzer } from '../utils/ai/news-keyword';
-
-const newsAnalyzer = new NewsAnalyzer();
+import { TaskEmitter } from '../utils/task/index';
 
 export default defineNitroPlugin(() => {
     const common = {
@@ -36,15 +34,16 @@ export default defineNitroPlugin(() => {
     CronJob.from({
         ...common,
         cronTime: '0 0 3 * * *',
-        onTick: async () => {
-            await batchUpdateStockKeywords(100);
+        onTick: () => {
+            TaskEmitter.emit("stock:keyword");
         },
+        runOnInit: true,
     });
     CronJob.from({
         ...common,
         cronTime: '0 0/10 * * * *',
         onTick: async () => {
-            await newsAnalyzer.crawl();
+            TaskEmitter.emit("news:keyword");
         },
     });
 })

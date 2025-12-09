@@ -1,5 +1,6 @@
 import { sqlTimestamps, customNanoid } from "./common";
-import { pgTable, text, index, unique, uniqueIndex, numeric, timestamp, integer, real, smallint, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, index, uniqueIndex, numeric, timestamp, integer, real, smallint, jsonb } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // 股票基本信息表
 export const tStock = pgTable("stock", {
@@ -19,7 +20,7 @@ export const tStock = pgTable("stock", {
 ]);
 
 export const tStockDynamicData = pgTable("stock_dynamic_data", {
-    id: text().primaryKey().$default(() => customNanoid(16)),
+    id: text().primaryKey().default(sql`uuidv7()`),
     stock_id: text().notNull().unique(), // 关联到stock表的外键
     // 市场信息
     price: numeric({ mode: 'number' }).notNull(), // 当前价格
@@ -36,7 +37,7 @@ export const tStockDynamicData = pgTable("stock_dynamic_data", {
 });
 
 export const tStockKeyword = pgTable("stock_keyword", {
-    id: text().primaryKey().$default(() => customNanoid(16)),
+    id: text().primaryKey().default(sql`uuidv7()`),
     stock_id: text().notNull(), // 关联到stock表的外键
     keyword: text().notNull(), // 股票关键词
     weight: real().notNull().default(0), // 关键词权重

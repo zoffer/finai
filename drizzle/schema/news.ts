@@ -1,6 +1,6 @@
 import { pgTable, text, unique, timestamp, jsonb, real } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { sqlTimestamps, customNanoid } from "./common";
+import { sqlTimestamps } from "./common";
 
 type AnalysisItem = {
     "keyword": string,
@@ -10,7 +10,7 @@ type AnalysisItem = {
 }
 
 export const tNews = pgTable("news", {
-    id: text().primaryKey().$default(() => customNanoid(16)),
+    id: text().primaryKey().default(sql`uuidv7()`),
     title: text().notNull(), // 新闻标题
     content: text().notNull(), // 新闻内容
     date: timestamp({ withTimezone: true }).notNull(), // 新闻发布日期
