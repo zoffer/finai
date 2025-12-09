@@ -3,7 +3,6 @@ import { crawlXQStockInfo } from "~~/server/utils/stock/source/aktools/info-xq";
 import { tStockKeyword, tStock, tStockDynamicData } from '~~/drizzle/schema/stock';
 import { sql, and, eq, max, or, lt, isNull } from 'drizzle-orm';
 import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
-import { TaskQueue } from '../index';
 
 const SystemPrompt = `
 你是一名专业的证券分析与自然语言处理（NLP）助手。
@@ -86,7 +85,7 @@ async function saveStockKeywords(stock: { symbol: string, exchange: string, }, k
     })
 }
 
-export default async function (num: number = 10) {
+export async function getStockKeywordTask(num: number = 10) {
     const stocks = await db
         .select({
             id: tStock.id,
@@ -104,8 +103,12 @@ export default async function (num: number = 10) {
         ))
         .orderBy(sql`${max(tStockDynamicData.turnover)} DESC NULLS LAST`)
         .limit(num);
-    return stocks.map(stock => async () => {
-        const keywords = await generateStockKeywords(stock);
-        await saveStockKeywords(stock, keywords);
-    })
+    const tasks = new Map<string, () => Promise<void>>();
+    for (const stock of stocks) {
+        tasks.set(stock.id, async () => {
+            const keywords = await generateStockKeywords(stock);
+            await saveStockKeywords(stock, keywords);
+        })
+    }
+    return tasks;
 }

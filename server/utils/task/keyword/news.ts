@@ -2,9 +2,8 @@ import { z } from "zod";
 import { crawlCLSNews } from "~~/server/utils/stock/source/aktools/cls-news";
 import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
 import { tStockKeyword } from '~~/drizzle/schema/stock';
-import { sql, desc, eq, isNull, gt, and } from 'drizzle-orm';
+import { sql, desc, eq, isNull } from 'drizzle-orm';
 import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
-import { kv } from '~~/server/utils/redis/index';
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
 
@@ -96,7 +95,7 @@ async function saveAnalyze(news: { id: string }, analysis: { keyword: string; ef
     })
 }
 
-export default async function (num = 10) {
+export async function getNewsKeywordTask(num = 10) {
     await crawlNews();
     const news = await db.select({
         id: tNews.id,
@@ -104,15 +103,14 @@ export default async function (num = 10) {
         content: tNews.content,
         date: tNews.date,
     }).from(tNews)
-        .where(and(isNull(tNews.analysis), gt(tNews.date, sql`NOW() - INTERVAL '12 hours'`)))
+        .where(isNull(tNews.analysis))
         .orderBy(desc(tNews.date)).limit(num);
-    return news.map(item =>
-        async () => {
-            const ok = await kv.news.lock(item.id);
-            if (ok) {
-                const analysis = await analyzeNews(item);
-                await saveAnalyze(item, analysis);
-            }
-        },
-    )
+    const tasks = new Map<string, () => Promise<void>>();
+    for (const item of news) {
+        tasks.set(item.id, async () => {
+            const analysis = await analyzeNews(item);
+            await saveAnalyze(item, analysis);
+        })
+    }
+    return tasks;
 }

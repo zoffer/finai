@@ -33,7 +33,7 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         ...common,
-        cronTime: '0 0 3 * * *',
+        cronTime: '0 0 * * * *',
         onTick: () => {
             TaskEmitter.emit("stock:keyword");
         },
