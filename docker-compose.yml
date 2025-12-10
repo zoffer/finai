@@ -1,0 +1,80 @@
+name: finai
+x-base-service: &bs
+  logging:
+    driver: "json-file"
+    options:
+      max-size: 10m
+      max-file: 3
+  networks:
+    - net
+services:
+  aktools:
+    <<: *bs
+    image: kkqy/aktools:latest
+    container_name: finai-aktools
+    pull_policy: always
+    restart: always
+    expose:
+      - 8080
+  postgres:
+    <<: *bs
+    image: postgres:18-alpine
+    container_name: finai-postgres
+    pull_policy: always
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: finai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  redis:
+    <<: *bs
+    image: redis:8-alpine
+    container_name: finai-redis
+    pull_policy: always
+    restart: always
+    volumes:
+      - redis-data:/data
+  migrate:
+    <<: *bs
+    image: ${DOCKER_REGISTRY}migrate:${TAG}
+    container_name: finai-migrate
+    build:
+      context: .
+      dockerfile: migrate.Dockerfile
+    pull_policy: always
+    restart: "no"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - postgres
+  nuxt:
+    <<: *bs
+    image: ${DOCKER_REGISTRY}nuxt:${TAG}
+    container_name: finai-nuxt
+    build: .
+    pull_policy: always
+    restart: always
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      AKTOOLS_URL: ${AKTOOLS_URL}
+      ZAI_API_KEY: ${ZAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - net
+      - outside
+volumes:
+  redis-data:
+  postgres-data:
+networks:
+  net:
+  outside:
+    name: ${NETWORK_NAME}
+    external: true
