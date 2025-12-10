@@ -14,7 +14,7 @@ export default defineNitroPlugin(() => {
         onTick: () => {
             StockEmitter.emit("stock:list");
         },
-        runOnInit: true,
+        runOnInit: !import.meta.dev,
     });
     CronJob.from({
         ...common,
@@ -38,7 +38,6 @@ export default defineNitroPlugin(() => {
         onTick: () => {
             TaskEmitter.emit("stock/ai/keyword", 20);
         },
-        runOnInit: true,
     });
     CronJob.from({
         ...common,
