@@ -7,6 +7,10 @@ const TaskQueue = Object.freeze({
     ai: new PQueue({ concurrency: 2, interval: 1000 * 10, intervalCap: 1 })
 })
 
+TaskQueue.ai.on('active', () => {
+    console.log(`[${new Date().toISOString()}]: Size: ${TaskQueue.ai.size}  Pending: ${TaskQueue.ai.pending}`);
+});
+
 const TaskInQueue = new Set<string>();
 
 async function addTaskToQueue(id: string, ...args: Parameters<PQueue['add']>) {
