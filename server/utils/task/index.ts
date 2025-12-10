@@ -22,22 +22,22 @@ async function addTaskToQueue(id: string, ...args: Parameters<PQueue['add']>) {
 }
 
 interface MyEvents {
-    "stock:keyword": [];
-    "news:keyword": [];
+    "stock/ai/keyword": [number];
+    "news/ai/keyword": [number];
 }
 
 export const TaskEmitter = new EventEmitter<MyEvents>();
 
-TaskEmitter.on("stock:keyword", async () => {
-    const tasks = await getStockKeywordTask(20);
+TaskEmitter.on("stock/ai/keyword", async (num) => {
+    const tasks = await getStockKeywordTask(num);
     for (const [id, task] of tasks) {
         addTaskToQueue(`stock:keyword:${id}`, task);
         if (TaskQueue.ai.size >= 100) { break; }
     }
 })
 
-TaskEmitter.on("news:keyword", async () => {
-    const tasks = await getNewsKeywordTask(20);
+TaskEmitter.on("news/ai/keyword", async (num) => {
+    const tasks = await getNewsKeywordTask(num);
     for (const [id, task] of tasks) {
         addTaskToQueue(`news:keyword:${id}`, task, { priority: 1 });
         if (TaskQueue.ai.size >= 100) { break; }

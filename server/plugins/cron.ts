@@ -14,6 +14,7 @@ export default defineNitroPlugin(() => {
         onTick: () => {
             StockEmitter.emit("stock:list");
         },
+        runOnInit: true,
     });
     CronJob.from({
         ...common,
@@ -33,9 +34,9 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         ...common,
-        cronTime: '0 0 * * * *',
+        cronTime: '0 0 5/10 * * *',
         onTick: () => {
-            TaskEmitter.emit("stock:keyword");
+            TaskEmitter.emit("stock/ai/keyword", 20);
         },
         runOnInit: true,
     });
@@ -43,7 +44,7 @@ export default defineNitroPlugin(() => {
         ...common,
         cronTime: '0 0/10 * * * *',
         onTick: async () => {
-            TaskEmitter.emit("news:keyword");
+            TaskEmitter.emit("news/ai/keyword", 20);
         },
     });
 })

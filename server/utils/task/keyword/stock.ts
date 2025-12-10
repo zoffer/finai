@@ -39,7 +39,6 @@ const SystemPrompt = `
 `;
 
 async function generateStockKeywords(stock: { symbol: string, exchange: string, name: string }) {
-    console.log('Start processing stock keywords for', stock);
     const infos = await crawlXQStockInfo(stock);
     infos.unshift({ item: "exchange", value: stock.exchange, })
     infos.unshift({ item: "symbol", value: stock.symbol, })
@@ -106,6 +105,7 @@ export async function getStockKeywordTask(num: number = 10) {
     const tasks = new Map<string, () => Promise<void>>();
     for (const stock of stocks) {
         tasks.set(stock.id, async () => {
+            console.log(`Analyze stock: ${stock.name}`);
             const keywords = await generateStockKeywords(stock);
             await saveStockKeywords(stock, keywords);
         })

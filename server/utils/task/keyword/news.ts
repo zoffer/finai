@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { crawlCLSNews } from "~~/server/utils/stock/source/aktools/cls-news";
 import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
-import { tStockKeyword } from '~~/drizzle/schema/stock';
-import { sql, desc, eq, isNull } from 'drizzle-orm';
+import { desc, eq, and, gt, sql } from 'drizzle-orm';
 import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
@@ -68,30 +67,16 @@ async function analyzeNews(news: { id: string, title: string, content: string })
 
 async function saveAnalyze(news: { id: string }, analysis: { keyword: string; effect: number; confidence: number; reason: string; }[]) {
     await db.transaction(async (tx) => {
-        const [updated] = await tx.update(tNews).set({ analysis }).where(eq(tNews.id, news.id)).returning({ id: tNews.id });
-        if (!updated) { return; }
+        const count = await tx.$count(tNews, eq(tNews.id, news.id));
+        if (count === 0) { return; }
         await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id))
-        for (const a of analysis) {
-            const list = JSON.stringify([a])
-            await tx.insert(tNewsEffect).select(
-                qb => qb.select({
-                    id: sql`uuidv7()`.as('id'),
-                    stock_id: tStockKeyword.stock_id,
-                    news_id: sql`${news.id}`.as('news_id'),
-                    analysis: sql`${list}::jsonb`.as('analysis'),
-                    effect: sql`${tStockKeyword.weight} * ${a.effect}`.as('effect'),
-                    created_at: sql`NOW()`.as('created_at'),
-                    updated_at: sql`NOW()`.as('updated_at'),
-                }).from(tStockKeyword).where(eq(tStockKeyword.keyword, a.keyword))
-            ).onConflictDoUpdate({
-                target: [tNewsEffect.stock_id, tNewsEffect.news_id],
-                set: {
-                    analysis: sql`COALESCE(${tNewsEffect.analysis}, '[]') || EXCLUDED.analysis`,
-                    effect: sql`CASE WHEN ABS(EXCLUDED.effect) > ABS(${tNewsEffect.effect}) THEN EXCLUDED.effect ELSE ${tNewsEffect.effect} END`,
-                    updated_at: sql`NOW()`,
-                }
-            });
-        }
+        await tx.insert(tNewsEffect).values(analysis.map(a => ({
+            news_id: news.id,
+            keyword: a.keyword,
+            effect: a.effect,
+            confidence: a.confidence,
+            reason: a.reason,
+        })))
     })
 }
 
@@ -103,11 +88,15 @@ export async function getNewsKeywordTask(num = 10) {
         content: tNews.content,
         date: tNews.date,
     }).from(tNews)
-        .where(isNull(tNews.analysis))
+        .where(and(
+            gt(tNews.date, sql`now() - interval '24 hours'`),
+            eq(db.$count(tNewsEffect, eq(tNewsEffect.news_id, tNews.id)), 0),
+        ))
         .orderBy(desc(tNews.date)).limit(num);
     const tasks = new Map<string, () => Promise<void>>();
     for (const item of news) {
         tasks.set(item.id, async () => {
+            console.log(`Analyze news: ${item.title}`);
             const analysis = await analyzeNews(item);
             await saveAnalyze(item, analysis);
         })
