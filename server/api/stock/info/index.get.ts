@@ -3,17 +3,22 @@ import { eq } from 'drizzle-orm';
 import type { H3Event } from "h3";
 import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
 import { StockRankTool } from "~~/server/utils/stock/rank/index";
+import z from 'zod';
 
-export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: string } }>) => {
+const zParameter = z.object({
+  id: z.string().trim(),
+});
+
+export default defineApiEventHandler(async (event: H3Event<{ query: z.input<typeof zParameter> }>) => {
   // 获取股票代码参数
-  const { symbol } = getQuery(event);
-
-  if (!symbol) {
+  const result = zParameter.safeParse(getQuery(event));
+  if (!result.success) {
     return new ApiError({
-      code: 'MISSING_SYMBOL_PARAM',
-      message: '缺少股票代码参数'
+      code: "invalid_parameter",
+      message: z.prettifyError(result.error)
     });
   }
+  const query = result.data;
 
   // 查询股票详情
   const stockData = await db.select({
@@ -22,17 +27,18 @@ export default defineApiEventHandler(async (event: H3Event<{ query: { symbol: st
     exchange: tStock.exchange,
     name: tStock.name,
     industry: tStock.industry,
+    introduction: tStock.introduction,
     price: tStockDynamicData.price,
     open: tStockDynamicData.open,
     high: tStockDynamicData.high,
     low: tStockDynamicData.low,
     volume: tStockDynamicData.volume,
     turnover: tStockDynamicData.turnover,
-    data_time: tStockDynamicData.market_data_time
+    data_time: tStockDynamicData.market_data_time,
   })
-    .from(tStockDynamicData)
-    .innerJoin(tStock, eq(tStock.id, tStockDynamicData.stock_id))
-    .where(eq(tStock.symbol, symbol))
+    .from(tStock)
+    .innerJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
+    .where(eq(tStock.id, query.id))
     .limit(1);
 
   if (!stockData || stockData.length === 0) {

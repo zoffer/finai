@@ -11,5 +11,5 @@ export default defineNuxtConfig({
     entryImportMap: false,
   },
 
-  modules: ["@nuxtjs/tailwindcss"],
+  modules: ["@nuxtjs/tailwindcss", "@vite-pwa/nuxt"],
 })
