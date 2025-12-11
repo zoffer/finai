@@ -137,11 +137,10 @@
                 class="p-4 border border-gray-100 rounded-xl hover:border-indigo-200 hover:shadow-md transition-all duration-200">
                 <div class="flex flex-col md:flex-row md:items-start gap-4">
                   <div class="flex-1">
-                    <h3
-                      class="text-lg font-semibold text-gray-900 hover:text-indigo-600 transition-colors mb-2 line-clamp-2">
+                    <h3 class="text-lg font-semibold text-gray-900 transition-colors mb-2 line-clamp-2">
                       {{ news.title }}
                     </h3>
-                    <p class="text-gray-600 text-sm line-clamp-2 mb-3">
+                    <p class="text-gray-600 text-sm mb-3">
                       {{ news.content }}
                     </p>
                     <!-- 添加关键词显示 -->

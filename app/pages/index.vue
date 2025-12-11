@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center">
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-2/3 px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8">
       <!-- Search and Filter Section -->
       <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 transition-all duration-300 hover:shadow-2xl">
         <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
@@ -33,7 +33,7 @@
         <!-- Empty State -->
         <div v-else-if="!stocks || stocks.length === 0"
           class="flex flex-col items-center justify-center py-20 px-6 text-center">
-          <div class="w-20 h-20 text-gray-300 mb-4">
+          <div class="w-auto text-gray-300 mb-4">
             <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1"
               stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -45,7 +45,7 @@
         </div>
 
         <!-- Stock Table -->
-        <table v-else :class="{ 'is-first-load': isFirstLoad }" class="min-w-full divide-y divide-gray-200 table-fixed">
+        <table v-else :class="{ 'is-first-load': isFirstLoad }" class="w-full divide-y divide-gray-200 table-fixed">
           <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>
               <th scope="col"
