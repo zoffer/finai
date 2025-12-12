@@ -4,15 +4,15 @@
     <!-- Main Content -->
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8">
       <!-- Search and Filter Section -->
-      <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 transition-all duration-300 hover:shadow-2xl">
-        <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      <div class="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-6 sm:mb-8 transition-all duration-300 hover:shadow-2xl">
+        <div class="flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
           <!-- Search Box -->
           <div class="relative flex-1">
             <input type="text" v-model="searchQuery" placeholder="搜索股票代码或名称..."
-              class="block w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-sm font-medium transition-all duration-200 bg-gray-50 focus:bg-white" />
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" width="20"
-              height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
+              class="block w-full pl-9 pr-3 py-2.5 sm:pl-10 sm:pr-4 sm:py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-sm font-medium transition-all duration-200 bg-gray-50 focus:bg-white" />
+            <svg class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" viewBox="0 0 24 24"
+              width="18" sm:width="20" height="18" sm:height="20" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -32,98 +32,102 @@
 
         <!-- Empty State -->
         <div v-else-if="!stocks || stocks.length === 0"
-          class="flex flex-col items-center justify-center py-20 px-6 text-center">
+          class="flex flex-col items-center justify-center py-16 px-4 text-center">
           <div class="w-auto text-gray-300 mb-4">
-            <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1"
+            <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" stroke-width="1"
               stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           </div>
-          <p class="text-gray-600 font-medium text-lg">{{ searchQuery ? '没有找到匹配的股票' : '暂无股票数据' }}</p>
+          <p class="text-gray-600 font-medium text-base sm:text-lg">{{ searchQuery ? '没有找到匹配的股票' : '暂无股票数据' }}</p>
         </div>
 
-        <!-- Stock Table -->
-        <table v-else :class="{ 'is-first-load': isFirstLoad }" class="w-full divide-y divide-gray-200 table-fixed">
-          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
-            <tr>
-              <th scope="col"
-                class="w-[120px] px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                股票代码
-              </th>
-              <th scope="col"
-                class="w-[180px] px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                股票名称
-              </th>
-              <th scope="col"
-                class="w-[120px] px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                当前价格
-              </th>
-              <th scope="col"
-                class="w-[120px] px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                涨跌幅
-              </th>
-              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                成交额
-              </th>
-              <th scope="col"
-                class="w-[120px] px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                新闻数量
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-100">
-            <tr v-for="(stock, i) in stocks || []" :key="stock.id"
-              class="group transition-all duration-300 hover:bg-gray-50 cursor-pointer"
-              :style="isFirstLoad ? { animationDelay: `${i * 30}ms` } : {}" @click="goToDetail(stock)">
-              <td class="w-[120px] px-6 py-5 whitespace-nowrap">
-                <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                  {{ stock.symbol }}
-                </div>
-              </td>
-              <td class="w-[180px] px-6 py-5 whitespace-nowrap">
-                <div class="text-sm text-gray-600">
-                  {{ stock.name }}
-                </div>
-              </td>
-              <td class="w-[120px] px-6 py-5 whitespace-nowrap">
-                <div class="text-sm font-bold text-gray-900">
-                  ¥{{ stock.price.toFixed(2) }}
-                </div>
-              </td>
-              <td class="w-[120px] px-6 py-5 whitespace-nowrap">
-                <div class="flex items-center gap-2 text-sm font-bold"
-                  :class="[stock.change > 0 ? 'text-red-500' : 'text-green-500']">
-                  <span>
-                    <svg v-if="stock.change > 0" viewBox="0 0 24 24" width="16" height="16" fill="none"
-                      stroke="currentColor" stroke-width="2">
-                      <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
+        <!-- Stock Table Container with Horizontal Scroll for Mobile -->
+        <div v-else class="overflow-x-auto sm:mx-0">
+          <table :class="{ 'is-first-load': isFirstLoad }"
+            class="w-full divide-y divide-gray-200 table-fixed min-w-[720px]">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  股票代码
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  股票名称
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  当前价格
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  涨跌幅
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  成交额
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  新闻数量
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              <tr v-for="(stock, i) in stocks || []" :key="stock.id"
+                class="group transition-all duration-300 hover:bg-gray-50 cursor-pointer active:bg-gray-100"
+                :style="isFirstLoad ? { animationDelay: `${i * 30}ms` } : {}" @click="goToDetail(stock)">
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                    {{ stock.symbol }}
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="text-sm text-gray-600">
+                    {{ stock.name }}
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="text-sm font-bold text-gray-900">
+                    ¥{{ stock.price.toFixed(2) }}
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
+                    :class="[stock.change > 0 ? 'text-red-500' : 'text-green-500']">
+                    <span>
+                      <svg v-if="stock.change > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
+                      </svg>
+                    </span>
+                    {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="text-sm text-gray-500 font-mono">
+                    {{ formatVolume(stock.turnover) }}
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="flex items-center gap-1 sm:gap-2 text-sm font-medium text-blue-600">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                      stroke-width="2">
-                      <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
-                    </svg>
-                  </span>
-                  {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
-                </div>
-              </td>
-              <td class="px-6 py-5 whitespace-nowrap">
-                <div class="text-sm text-gray-500 font-mono">
-                  {{ formatVolume(stock.turnover) }}
-                </div>
-              </td>
-              <td class="w-[120px] px-6 py-5 whitespace-nowrap">
-                <div class="flex items-center gap-2 text-sm font-medium text-blue-600">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  {{ stock.news_count || 0 }}
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    {{ stock.news_count || 0 }}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
 
@@ -252,5 +256,18 @@ tr {
   opacity: 0;
   transform: translateY(20px);
   animation: fadeInUp 0.5s ease forwards;
+}
+
+/* 优化移动端滚动体验 */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 移动端触摸反馈优化 */
+@media (max-width: 640px) {
+  tr:active {
+    background-color: rgba(243, 244, 246, 0.5);
+  }
 }
 </style>
