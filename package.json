@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^1.0.31",
-    "@nuxtjs/tailwindcss": "^6.14.0",
     "ai": "^5.0.107",
     "cron": "^4.3.5",
     "drizzle-orm": "^0.44.7",
@@ -27,6 +26,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/pg": "^8.15.6",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.7",
