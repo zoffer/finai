@@ -6,12 +6,12 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div class="flex items-center gap-4">
             <button @click="goBack"
-              class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 backdrop-blur-sm font-medium">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="15" y1="18" x2="9" y2="12"></line>
-                <line x1="9" y1="6" x2="15" y2="12"></line>
+              class="flex items-center justify-center p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+              aria-label="返回列表">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
-              返回列表
             </button>
             <div>
               <h1 class="text-2xl md:text-3xl font-bold">{{ stock?.name || '股票详情' }}</h1>
@@ -104,6 +104,32 @@
           </div>
         </div>
 
+        <!-- Keywords Card -->
+        <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
+          <div class="p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-100">股票关键词</h2>
+            <div v-if="stock.keywords && stock.keywords.length > 0" class="flex flex-wrap gap-3">
+              <div v-for="(item, index) in stock.keywords" :key="index" class="tooltip-container relative">
+                <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block" :style="{
+                  backgroundColor: `hsl(210, ${item.weight * 100}%, 90%)`,
+                  color: `hsl(210, ${item.weight * 100}%, 20%)`,
+                }">
+                  {{ item.keyword }}
+                </span>
+                <!-- Tooltip 内容 -->
+                <div
+                  class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 w-max">
+                  <span class="text-gray-600">权重: </span>
+                  <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-gray-500 text-center py-4">
+              暂无关键词数据
+            </div>
+          </div>
+        </div>
+
         <!-- News List Card -->
         <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
           <div class="p-8">
@@ -159,7 +185,7 @@
                           <div class="mb-1">
                             <span class="text-gray-600">影响程度: </span>
                             <span :class="keyword.effect >= 0 ? 'text-red-500' : 'text-green-500'">
-                              {{ keyword.effect >= 0 ? '利好' : '利空' }} ({{ Math.abs(keyword.effect).toFixed(2) }})
+                              {{ Math.abs(keyword.effect).toFixed(2) }}
                             </span>
                           </div>
                           <div class="mb-1">

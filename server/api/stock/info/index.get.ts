@@ -1,7 +1,7 @@
 // API接口：获取股票详情
-import { eq } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import type { H3Event } from "h3";
-import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
+import { tStock, tStockDynamicData, tStockKeyword } from "~~/drizzle/schema/stock";
 import { StockRankTool } from "~~/server/utils/stock/rank/index";
 import z from 'zod';
 
@@ -35,9 +35,18 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
     volume: tStockDynamicData.volume,
     turnover: tStockDynamicData.turnover,
     data_time: tStockDynamicData.market_data_time,
+    keywords: sql<{ keyword: string, weight: number }[]>`keywords`,
   })
     .from(tStock)
     .innerJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
+    .leftJoinLateral(
+      db.select({
+        keywords: sql`json_agg(json_build_object('keyword', ${tStockKeyword.keyword}, 'weight', ${tStockKeyword.weight}))`.as('keywords'),
+      }).from(tStockKeyword)
+        .where(eq(tStockKeyword.stock_id, tStock.id))
+        .as('kw'),
+      sql`true`
+    )
     .where(eq(tStock.id, query.id))
     .limit(1);
 
@@ -50,6 +59,8 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
 
   // 处理查询结果
   const stock = stockData[0];
+
+  stock.keywords = stock.keywords.sort((a, b) => b.weight - a.weight);
 
   // 增加1天内的股票排名
   StockRankTool.v24h.incr(stock.id);

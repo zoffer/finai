@@ -25,6 +25,7 @@ export default defineApiEventHandler(async (event: H3Event<{
     db.select({
       stock_id: tStockKeyword.stock_id,
       news_count: sql`count(distinct ${tNews.id})`.as('news_count'),
+      news_effect: sql`sum(${tNewsEffect.effect} * ${tStockKeyword.weight})`.as('news_effect'),
     })
       .from(tStockKeyword)
       .innerJoin(tNewsEffect, eq(tStockKeyword.keyword, tNewsEffect.keyword))
@@ -45,12 +46,13 @@ export default defineApiEventHandler(async (event: H3Event<{
     turnover: tStockDynamicData.turnover,
     market_data_time: tStockDynamicData.market_data_time,
     heat_score: tStockDynamicData.heat_score,
-    news_count: sql`coalesce(${sq.news_count}, 0)`.as('news_count'),
+    news_count: sql`coalesce(${sq.news_count}, 0)`.mapWith(Number).as('news_count'),
+    news_effect: sql`coalesce(${sq.news_effect}, 0)`.mapWith(Number).as('news_effect'),
   })
     .from(tStock)
     .innerJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
     .leftJoin(sq, eq(tStock.id, sq.stock_id))
-    .orderBy(desc(sql`news_count`))
+    .orderBy(sql`abs(news_effect) DESC NULLS LAST`, desc(tStockDynamicData.turnover))
     .where(query.search ? or(ilike(tStock.name, `%${query.search}%`), ilike(tStock.symbol, `%${query.search}%`)) : undefined)
     .limit(query.size);
 

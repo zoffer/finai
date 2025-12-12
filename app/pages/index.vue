@@ -47,7 +47,7 @@
         <!-- Stock Table Container with Horizontal Scroll for Mobile -->
         <div v-else class="overflow-x-auto sm:mx-0">
           <table :class="{ 'is-first-load': isFirstLoad }"
-            class="w-full divide-y divide-gray-200 table-fixed min-w-[720px]">
+            class="w-full divide-y divide-gray-200 table-fixed min-w-[840px]">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
                 <th scope="col"
@@ -69,6 +69,10 @@
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   成交额
+                </th>
+                <th scope="col"
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  新闻影响
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -114,6 +118,22 @@
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="text-sm text-gray-500 font-mono">
                     {{ formatVolume(stock.turnover) }}
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
+                    :class="[stock.news_effect > 0 ? 'text-red-500' : stock.news_effect < 0 ? 'text-green-500' : 'text-gray-500']">
+                    <span>
+                      <svg v-if="stock.news_effect > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
+                      </svg>
+                      <svg v-else-if="stock.news_effect < 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
+                      </svg>
+                    </span>
+                    {{ stock.news_effect ? stock.news_effect.toFixed(2) : '0.00' }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
@@ -184,7 +204,7 @@ onUnmounted(() => {
 
 const { data: stocks, pending, refresh: refreshData } = useAsyncData(async () => {
   const res = await $api("/api/stock/list/hot", {
-    query: { size: 50, search: searchQuery.value }
+    query: { size: 100, search: searchQuery.value }
   })
   return res.data.map(stock => {
     // 计算涨跌幅
