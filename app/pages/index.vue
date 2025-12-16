@@ -50,12 +50,12 @@
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
                 <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  股票代码
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100">
+                  股票名称
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  股票名称
+                  股票代码
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -83,14 +83,15 @@
               <tr v-for="(stock, i) in stocks || []" :key="stock.id"
                 class="group transition-all duration-300 hover:bg-gray-50 cursor-pointer active:bg-gray-100"
                 :style="{ animationDelay: `${i * 30}ms` }" @click="goToDetail(stock)">
-                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                    {{ stock.symbol }}
+                <td
+                  class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap sticky left-0 z-0 bg-white group-hover:bg-gray-50">
+                  <div class="text-sm text-gray-600">
+                    {{ stock.name }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="text-sm text-gray-600">
-                    {{ stock.name }}
+                  <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                    {{ stock.symbol }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
