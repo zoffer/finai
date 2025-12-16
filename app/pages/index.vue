@@ -25,7 +25,7 @@
       <div
         class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl min-h-[300px]">
         <!-- Loading State -->
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 px-6">
+        <div v-if="!isSilence && isLoading" class="flex flex-col items-center justify-center py-20 px-6">
           <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
           <p class="text-gray-600 font-medium">加载中，请稍候...</p>
         </div>
@@ -45,9 +45,8 @@
         </div>
 
         <!-- Stock Table Container with Horizontal Scroll for Mobile -->
-        <div v-else class="overflow-x-auto sm:mx-0">
-          <table :class="{ 'is-first-load': isFirstLoad }"
-            class="w-full divide-y divide-gray-200 table-fixed min-w-[840px]">
+        <div v-else class="sm:mx-0 overflow-x-auto">
+          <table class="w-full divide-y divide-gray-200 table-fixed min-w-[840px]">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
                 <th scope="col"
@@ -83,7 +82,7 @@
             <tbody class="bg-white divide-y divide-gray-100">
               <tr v-for="(stock, i) in stocks || []" :key="stock.id"
                 class="group transition-all duration-300 hover:bg-gray-50 cursor-pointer active:bg-gray-100"
-                :style="isFirstLoad ? { animationDelay: `${i * 30}ms` } : {}" @click="goToDetail(stock)">
+                :style="{ animationDelay: `${i * 30}ms` }" @click="goToDetail(stock)">
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                     {{ stock.symbol }}
@@ -157,16 +156,10 @@
 <script lang="ts" setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 
-const { $api } = useNuxtApp()
-
 // 股票数据状态
 const searchQuery = ref('')
-// 是否为首次加载（用于控制动画）
-const isFirstLoad = ref(true)
 
-const isLoading = ref(false)
-// 定时器引用
-let refreshTimer: Parameters<typeof clearInterval>[0]
+const isSilence = ref(false)
 
 // 格式化成交量（符合中文习惯）
 const formatVolume = (volume: number) => {
@@ -183,28 +176,15 @@ let debounceTimer: Parameters<typeof clearTimeout>[0]
 watch(searchQuery, (newQuery) => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    isFirstLoad.value = false // 搜索时不显示动画
-    refreshData()
+    refreshStockData()
   }, 300)
 })
 
-// 设置每分钟自动刷新
-onMounted(() => {
-  // 首次加载完成后，设置定时器
-  refreshTimer = setInterval(() => {
-    isFirstLoad.value = false // 自动刷新时不显示动画
-    refreshData()
-  }, 60000) // 60秒 = 1分钟
-})
 
-// 组件卸载时清除定时器
-onUnmounted(() => {
-  clearInterval(refreshTimer)
-})
-
-const { data: stocks, pending, refresh: refreshData } = useAsyncData(async () => {
+const { data: stocks, pending: isLoading, refresh } = useAsyncData(async ({ $api }, { signal }) => {
   const res = await $api("/api/stock/list/hot", {
-    query: { size: 100, search: searchQuery.value }
+    signal,
+    query: { size: 100, search: searchQuery.value },
   })
   return res.data.map(stock => {
     // 计算涨跌幅
@@ -219,16 +199,32 @@ const { data: stocks, pending, refresh: refreshData } = useAsyncData(async () =>
   })
 });
 
-watch(pending, (newPending, oldPending, onCleanup) => {
-  if (newPending) {
-    const loadingTimer = setTimeout(() => {
-      isFirstLoad.value = true
-    }, 300);
-    onCleanup(() => clearTimeout(loadingTimer))
-  } else {
-    isFirstLoad.value = false
+let silenceRefreshTimer: Parameters<typeof clearTimeout>[0]
+const refreshStockData = (silence = false) => {
+  clearTimeout(silenceRefreshTimer)
+  isSilence.value = true
+  if (!silence) {
+    // 延时显示，避免 immediate 刷新时闪烁
+    silenceRefreshTimer = setTimeout(() => {
+      isSilence.value = false
+    }, 300)
   }
-});
+  refresh()
+}
+
+// 定时器引用
+let refreshTimer: Parameters<typeof clearInterval>[0]
+// 设置每分钟自动刷新
+onMounted(() => {
+  // 首次加载完成后，设置定时器
+  refreshTimer = setInterval(() => {
+    refreshStockData(true)
+  }, 60000) // 60秒 = 1分钟
+})
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  clearInterval(refreshTimer)
+})
 
 // 跳转到详情页面
 const goToDetail = (stock: { id: string }) => {
@@ -251,37 +247,8 @@ const goToDetail = (stock: { id: string }) => {
   }
 }
 
-/* 为表格行添加动画类 - 仅在首次加载时显示 */
 tr {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* 首次加载时应用动画 */
-tr {
-  opacity: 0;
-  transform: translateY(20px);
   animation: fadeInUp 0.5s ease forwards;
-}
-
-/* 非首次加载时移除动画 */
-tr {
-  opacity: 1;
-  transform: translateY(0);
-  animation: none;
-}
-
-/* 根据isFirstLoad变量控制动画 */
-:deep(.is-first-load) tr {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeInUp 0.5s ease forwards;
-}
-
-/* 优化移动端滚动体验 */
-.overflow-x-auto {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 /* 移动端触摸反馈优化 */
