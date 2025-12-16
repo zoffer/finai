@@ -5,8 +5,6 @@ x-base-service: &bs
     options:
       max-size: 10m
       max-file: 3
-  networks:
-    - net
 services:
   aktools:
     <<: *bs
@@ -16,6 +14,10 @@ services:
     restart: always
     expose:
       - 8080
+    networks:
+      net:
+        aliases:
+          - aktools
   postgres:
     <<: *bs
     image: postgres:18-alpine
@@ -27,6 +29,10 @@ services:
     environment:
       POSTGRES_DB: finai
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      net:
+        aliases:
+          - postgres
   redis:
     <<: *bs
     image: redis:8-alpine
@@ -35,6 +41,10 @@ services:
     restart: always
     volumes:
       - redis-data:/data
+    networks:
+      net:
+        aliases:
+          - redis
   migrate:
     <<: *bs
     image: ${DOCKER_REGISTRY}migrate:${TAG}
@@ -45,9 +55,11 @@ services:
     pull_policy: always
     restart: "no"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/finai"
     depends_on:
       - postgres
+    networks:
+      net:
   nuxt:
     <<: *bs
     image: ${DOCKER_REGISTRY}nuxt:${TAG}
@@ -56,9 +68,9 @@ services:
     pull_policy: always
     restart: always
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      AKTOOLS_URL: ${AKTOOLS_URL}
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/finai"
+      REDIS_URL: "redis://redis:6379"
+      AKTOOLS_URL: "http://aktools:8080"
       ZAI_API_KEY: ${ZAI_API_KEY}
     depends_on:
       postgres:
@@ -68,8 +80,10 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - net
-      - outside
+      net:
+      outside:
+        aliases:
+          - finai-nuxt
 volumes:
   redis-data:
   postgres-data:
