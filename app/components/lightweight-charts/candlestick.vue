@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { createChart, CandlestickSeries } from 'lightweight-charts'
 import type { IChartApi, CandlestickData } from 'lightweight-charts'
+import { TooltipPrimitive } from './plugins/tooltip'
 
 const props = defineProps<{
     data?: CandlestickData[]
@@ -24,22 +25,17 @@ onMounted(() => {
             fixRightEdge: true,
             borderVisible: false,
         },
-        rightPriceScale: {
-            borderVisible: false,
-            visible: false,
-        },
         layout: {
             attributionLogo: false,
         },
     })
 
-    chart.subscribeCrosshairMove(params => {
-        console.log(params)
-    })
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
         downColor, upColor, borderVisible: false,
         wickUpColor: upColor, wickDownColor: downColor,
     });
+
+    candlestickSeries.attachPrimitive(new TooltipPrimitive());
 
     watch(
         () => props.data,

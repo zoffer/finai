@@ -56,11 +56,11 @@
 
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  当前价格
+                  涨跌幅
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  涨跌幅
+                  当前价格
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -90,11 +90,6 @@
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="text-sm font-bold text-gray-900">
-                    ¥{{ stock.price.toFixed(2) }}
-                  </div>
-                </td>
-                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
                     :class="[stock.change > 0 ? 'text-red-500' : 'text-green-500']">
                     <span>
@@ -108,6 +103,11 @@
                       </svg>
                     </span>
                     {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
+                  </div>
+                </td>
+                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                  <div class="text-sm font-bold text-gray-900">
+                    ¥{{ stock.price.toFixed(2) }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
