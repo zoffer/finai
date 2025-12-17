@@ -1,23 +1,66 @@
 <template>
   <div class="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Header -->
-    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div class="flex items-center gap-4">
+    <header class="text-white shadow-lg sticky top-0 z-50" :class="[
+      (stock?.change || 0) > 0 ? 'bg-gradient-to-r from-red-500 to-red-600' : '',
+      (stock?.change || 0) < 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : '',
+      (stock?.change || 0) === 0 ? 'bg-gradient-to-r from-gray-600 to-gray-700' : ''
+    ]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div class="flex justify-between items-center">
+          <!-- 左侧信息：返回按钮 + 股票基本信息 -->
+          <div class="flex items-center gap-3">
             <button @click="goBack"
               class="flex items-center justify-center p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/50"
               aria-label="返回列表">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
             <div>
-              <h1 class="text-2xl md:text-3xl font-bold">{{ stock?.name || '股票详情' }}</h1>
-              <p class="text-sm md:text-base opacity-90 mt-1">{{ stock?.symbol }} - {{ stock?.exchange }}</p>
+              <h1 class="text-xl md:text-2xl font-bold">{{ stock?.name || '股票详情' }}</h1>
+              <p class="text-xs md:text-sm opacity-90 mt-0.5">{{ stock?.symbol }} - {{ stock?.exchange }}</p>
             </div>
           </div>
+
+          <!-- 右侧价格信息 -->
+          <div class="flex flex-col items-end gap-2">
+            <!-- 当前价格 -->
+            <div class="text-2xl md:text-3xl font-bold">
+              ¥{{ formatPrice(stock?.price) }}
+            </div>
+            <!-- 涨跌幅 -->
+            <div :class="['flex items-center gap-2 text-sm font-semibold',
+              (stock?.change || 0) > 0 ? 'text-red-100' : '',
+              (stock?.change || 0) < 0 ? 'text-green-100' : '',
+              (stock?.change || 0) === 0 ? 'text-gray-100' : ''
+            ]">
+              {{ (stock?.change || 0) > 0 ? '+' : '' }}{{ (stock?.change || 0).toFixed(2) }}% (¥{{
+                formatPrice(stock?.changeAmount)
+              }})
+            </div>
+          </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="flex justify-between gap-y-1 gap-x-4 mt-2 text-sm opacity-95">
+          <span class="text-center">
+            <span class="opacity-75 block sm:inline mx-1">开盘</span>
+            <span class="text-nowrap"> ¥{{ formatPrice(stock?.open) }} </span>
+          </span>
+          <span class="text-center">
+            <span class="opacity-75 block sm:inline mx-1">最高</span>
+            <span class="text-nowrap"> ¥{{ formatPrice(stock?.high) }} </span>
+          </span>
+          <span class="text-center">
+            <span class="opacity-75 block sm:inline mx-1">最低</span>
+            <span class="text-nowrap"> ¥{{ formatPrice(stock?.low) }} </span>
+          </span>
+          <span class="text-center">
+            <span class="opacity-75 block sm:inline mx-1">成交</span>
+            <span class="text-nowrap"> {{ formatVolume(stock?.turnover) }} </span>
+          </span>
         </div>
       </div>
     </header>
@@ -45,64 +88,18 @@
       </div>
 
       <!-- Stock Detail Content -->
-      <div v-else-if="stock" class="space-y-8 animate-fadeIn">
-        <!-- Price Info Card -->
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-          <div class="p-8">
-            <!-- Price Section -->
-            <div class="text-center mb-8">
-              <div class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-                ¥{{ formatPrice(stock.price) }}
-              </div>
-              <div
-                :class="['flex items-center justify-center gap-2 text-xl font-semibold', stock.change > 0 ? 'text-red-500' : 'text-green-500']">
-                <span>
-                  <svg v-if="stock.change > 0" viewBox="0 0 24 24" width="20" height="20" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
-                    <polyline points="17 14 23 20 23 14"></polyline>
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
-                    <polyline points="17 10 23 4 23 10"></polyline>
-                  </svg>
-                </span>
-                {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}% (¥{{ formatPrice(stock.changeAmount) }})
-              </div>
-            </div>
+      <div v-else-if="stock" class="space-y-6 animate-fadeIn">
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div class="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200">
-                <div class="text-sm font-medium text-gray-600 mb-2">开盘价</div>
-                <div class="text-2xl font-bold text-gray-900">¥{{ formatPrice(stock.open) }}</div>
-              </div>
-              <div class="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200">
-                <div class="text-sm font-medium text-gray-600 mb-2">最高价</div>
-                <div class="text-2xl font-bold text-gray-900">¥{{ formatPrice(stock.high) }}</div>
-              </div>
-              <div class="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200">
-                <div class="text-sm font-medium text-gray-600 mb-2">最低价</div>
-                <div class="text-2xl font-bold text-gray-900">¥{{ formatPrice(stock.low) }}</div>
-              </div>
-              <div class="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200">
-                <div class="text-sm font-medium text-gray-600 mb-2">成交额</div>
-                <div class="text-2xl font-bold text-gray-900">{{ formatVolume(stock.turnover) }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Candlestick Chart Card -->
-        <div class="bg-white p-8 h-auto rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
+        <div class="bg-white p-6 h-auto rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
           <LightweightChartsCandlestick class="w-full aspect-[21/9] max-h-[66vh]" :data="history" />
         </div>
 
         <!-- Company Info Card -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-          <div class="p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-100">公司信息</h2>
+          <div class="p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">公司信息</h2>
             <div>
               {{ stock.introduction || '-' }}
             </div>
@@ -112,8 +109,8 @@
 
         <!-- Keywords Card -->
         <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
-          <div class="p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-100">股票关键词</h2>
+          <div class="p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">股票关键词</h2>
             <div v-if="stock.keywords && stock.keywords.length > 0" class="flex flex-wrap gap-3">
               <div v-for="(item, index) in stock.keywords" :key="index" class="tooltip-container relative">
                 <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block" :style="{
@@ -138,8 +135,8 @@
 
         <!-- News List Card -->
         <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
-          <div class="p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-100">相关新闻</h2>
+          <div class="p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">相关新闻</h2>
 
             <!-- News Loading State -->
             <div v-if="isNewsLoading" class="flex flex-col items-center justify-center py-12">
