@@ -16,6 +16,7 @@
     "cron": "^4.3.5",
     "drizzle-orm": "^0.44.7",
     "jose": "^6.1.2",
+    "lightweight-charts": "^5.1.0",
     "nanoid": "^5.1.6",
     "nuxt": "^4.2.1",
     "p-queue": "^9.0.1",

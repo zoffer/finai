@@ -23,7 +23,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 px-4">
         <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
@@ -94,6 +94,11 @@
           </div>
         </div>
 
+        <!-- Candlestick Chart Card -->
+        <div class="bg-white p-8 h-auto rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
+          <LightweightChartsCandlestick class="w-full aspect-[21/9] max-h-[66vh]" :data="history" />
+        </div>
+
         <!-- Company Info Card -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
           <div class="p-8">
@@ -103,6 +108,7 @@
             </div>
           </div>
         </div>
+
 
         <!-- Keywords Card -->
         <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
@@ -305,6 +311,15 @@ const { data: newsList, pending: isNewsLoading, error: newsError, refresh: refre
   })
   return res.data || []
 })
+
+const { data: history, pending: isHistoryLoading, error: historyError, refresh: refreshHistory } = useAsyncData(`history-${stockId.value}`, async ({ $api }, { signal }) => {
+  const res = await $api("/api/stock/history", {
+    query: { id: stockId.value },
+    signal
+  })
+  return res.data
+})
+
 
 // 返回上一页
 const goBack = (): void => {
