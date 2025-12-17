@@ -22,7 +22,19 @@ onMounted(() => {
         timeScale: {
             fixLeftEdge: true,
             fixRightEdge: true,
+            borderVisible: false,
         },
+        rightPriceScale: {
+            borderVisible: false,
+            visible: false,
+        },
+        layout: {
+            attributionLogo: false,
+        },
+    })
+
+    chart.subscribeCrosshairMove(params => {
+        console.log(params)
     })
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
         downColor, upColor, borderVisible: false,

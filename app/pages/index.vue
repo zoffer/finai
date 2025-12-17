@@ -53,10 +53,7 @@
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100">
                   股票名称
                 </th>
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  股票代码
-                </th>
+
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   当前价格
@@ -88,9 +85,7 @@
                   <div class="text-sm text-gray-600">
                     {{ stock.name }}
                   </div>
-                </td>
-                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  <div class="text-xs text-gray-400">
                     {{ stock.symbol }}
                   </div>
                 </td>

@@ -93,7 +93,7 @@
 
         <!-- Candlestick Chart Card -->
         <div class="bg-white p-6 h-auto rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
-          <LightweightChartsCandlestick class="w-full aspect-[21/9] max-h-[66vh]" :data="history" />
+          <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history" />
         </div>
 
         <!-- Company Info Card -->
