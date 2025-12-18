@@ -100,6 +100,15 @@
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
           <!-- Tab Navigation -->
           <div class="flex border-b border-gray-200">
+            <button @click="activeTab = 'keywords'"
+              class="px-6 py-3 text-sm font-medium transition-all duration-200 flex-1 text-center relative -mb-px"
+              :class="[
+                activeTab === 'keywords'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-semibold'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              ]">
+              关键词
+            </button>
             <button @click="activeTab = 'company'"
               class="px-6 py-3 text-sm font-medium transition-all duration-200 flex-1 text-center relative -mb-px"
               :class="[
@@ -108,15 +117,6 @@
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               ]">
               公司信息
-            </button>
-            <button @click="activeTab = 'keywords'"
-              class="px-6 py-3 text-sm font-medium transition-all duration-200 flex-1 text-center relative -mb-px"
-              :class="[
-                activeTab === 'keywords'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-semibold'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              ]">
-              股票关键词
             </button>
           </div>
 
@@ -131,19 +131,31 @@
 
             <!-- Keywords Tab -->
             <div v-else-if="activeTab === 'keywords'">
-              <div v-if="stock.keywords && stock.keywords.length > 0" class="flex flex-wrap gap-3">
-                <div v-for="(item, index) in stock.keywords" :key="index" class="tooltip-container relative">
-                  <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block" :style="{
-                    backgroundColor: `hsl(210, ${item.weight * 100}%, 90%)`,
-                    color: `hsl(210, ${item.weight * 100}%, 20%)`,
+              <div v-if="keywords && keywords.length > 0" class="flex flex-wrap gap-3">
+                <div v-for="(item, index) in keywords" :key="index" class="tooltip-container relative">
+                  <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block text-gray-600" :style="{
+                    backgroundColor: calcTagColor(item.avg_effect),
                   }">
                     {{ item.keyword }}
                   </span>
                   <!-- Tooltip 内容 -->
                   <div
                     class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 w-max">
-                    <span class="text-gray-600">权重: </span>
-                    <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
+                    <div>
+                      <span class="text-gray-600">权重: </span>
+                      <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-600">热度: </span>
+                      <span class="text-blue-500">{{ item.news_count }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-600">趋势: </span>
+                      <span
+                        :class="{ 'text-red-500': item.avg_effect > 0, 'text-green-500': item.avg_effect < 0, 'text-gray-500': item.avg_effect === 0 }">
+                        {{ item.avg_effect.toFixed(2) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -259,7 +271,7 @@ const router = useRouter()
 const lastUpdateTime = ref('')
 
 // Tab切换状态
-const activeTab = ref<'company' | 'keywords'>('company') // 'company' 或 'keywords'
+const activeTab = ref<'company' | 'keywords'>('keywords') // 'company' 或 'keywords'
 
 // 获取股票ID
 const stockId = computed(() => route.params.id as string)
@@ -279,6 +291,14 @@ const formatVolume = (volume: number | null | undefined) => {
     return (volume / 10000).toFixed(2) + '万'
   }
   return volume.toString()
+}
+
+const calcTagColor = (effect: number) => {
+  if (effect >= 0) {
+    return `hsl(0, ${Math.min(100, 100 * Math.abs(effect))}%, 80%)`
+  } else {
+    return `hsl(120, ${Math.min(100, 100 * Math.abs(effect))}%, 80%)`
+  }
 }
 
 // 格式化日期
@@ -333,7 +353,7 @@ const { data: newsList, pending: isNewsLoading, error: newsError, refresh: refre
   return res.data || []
 })
 
-const { data: history, pending: isHistoryLoading, error: historyError, refresh: refreshHistory } = useAsyncData(`history-${stockId.value}`, async ({ $api }, { signal }) => {
+const { data: history } = useAsyncData(`history-${stockId.value}`, async ({ $api }, { signal }) => {
   const res = await $api("/api/stock/history", {
     query: { id: stockId.value },
     signal
@@ -347,6 +367,14 @@ const { data: newsStatistics } = useAsyncData(async ({ $api }, { signal }) => {
     signal
   })
   return res.data.map(item => ({ time: item.date, value: item.effect }))
+})
+
+const { data: keywords } = useAsyncData(async ({ $api }, { signal }) => {
+  const res = await $api("/api/stock/news/keywords", {
+    query: { stock_id: stockId.value },
+    signal
+  })
+  return res.data
 })
 
 

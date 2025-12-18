@@ -30,9 +30,6 @@ onMounted(() => {
         layout: {
             attributionLogo: false,
         },
-        overlayPriceScales: {
-            minimumWidth: 10,
-        },
     })
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {

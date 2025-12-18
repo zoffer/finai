@@ -14,7 +14,7 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
     const { stock_id } = await apiParameterParse(zParameter, getQuery(event));
 
     const list = await db.select({
-        count: sql`count(${tNews.id})`.mapWith(Number),
+        count: sql`count(distinct ${tNews.id})`.mapWith(Number),
         effect: sql`sum(${tNewsEffect.effect} * ${tStockKeyword.weight})`.mapWith(Number),
         date: sql`(${tNews.date} AT TIME ZONE 'Asia/Shanghai')::date`.as('d'),
     }).from(tNewsEffect)
