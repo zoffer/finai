@@ -46,7 +46,7 @@
 
         <!-- Stock Table Container with Horizontal Scroll for Mobile -->
         <div v-else class="sm:mx-0 overflow-x-auto">
-          <table class="w-full divide-y divide-gray-200 table-fixed min-w-[840px]">
+          <table class="w-full divide-y divide-gray-200 table-fixed">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
                 <th scope="col"
@@ -56,23 +56,15 @@
 
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  涨跌幅
+                  涨跌 / 现价
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  当前价格
+                  成交
                 </th>
                 <th scope="col"
                   class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  成交额
-                </th>
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  新闻影响
-                </th>
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  新闻数量
+                  新闻
                 </th>
               </tr>
             </thead>
@@ -92,27 +84,18 @@
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
                     :class="[stock.change > 0 ? 'text-red-500' : 'text-green-500']">
-                    <span>
-                      <svg v-if="stock.change > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
-                      </svg>
-                      <svg v-else viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
-                      </svg>
-                    </span>
                     {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
                   </div>
-                </td>
-                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="text-sm font-bold text-gray-900">
+                  <div class="text-sm font-bold text-gray-900 mt-1">
                     ¥{{ stock.price.toFixed(2) }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="text-sm text-gray-500 font-mono">
-                    {{ formatVolume(stock.turnover) }}
+                    ¥{{ formatVolume(stock.turnover) }}
+                  </div>
+                  <div class="text-sm text-gray-500 font-mono mt-1">
+                    {{ formatVolume(stock.volume) }}
                   </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
@@ -130,9 +113,7 @@
                     </span>
                     {{ stock.news_effect ? stock.news_effect.toFixed(2) : '0.00' }}
                   </div>
-                </td>
-                <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                  <div class="flex items-center gap-1 sm:gap-2 text-sm font-medium text-blue-600">
+                  <div class="flex items-center gap-1 sm:gap-2 text-sm font-medium text-blue-600 mt-1">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
@@ -245,12 +226,5 @@ const goToDetail = (stock: { id: string }) => {
 
 tr {
   animation: fadeInUp 0.5s ease forwards;
-}
-
-/* 移动端触摸反馈优化 */
-@media (max-width: 640px) {
-  tr:active {
-    background-color: rgba(243, 244, 246, 0.5);
-  }
 }
 </style>

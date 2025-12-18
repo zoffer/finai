@@ -16,8 +16,8 @@ const chartContainer = ref<HTMLDivElement>()
 let chart: IChartApi | null = null
 
 onMounted(() => {
-    const upColor = '#ef5350'
-    const downColor = '#26a69a'
+    const upColor = '#ef4444'
+    const downColor = '#22c55e'
     chart = createChart(chartContainer.value as HTMLElement, {
         autoSize: true,
         timeScale: {

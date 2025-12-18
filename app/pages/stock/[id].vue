@@ -31,7 +31,7 @@
               ¥{{ formatPrice(stock?.price) }}
             </div>
             <!-- 涨跌幅 -->
-            <div :class="['flex items-center gap-2 text-sm font-semibold',
+            <div class="flex items-center gap-2 text-sm font-semibold" :class="[
               (stock?.change || 0) > 0 ? 'text-red-100' : '',
               (stock?.change || 0) < 0 ? 'text-green-100' : '',
               (stock?.change || 0) === 0 ? 'text-gray-100' : ''
@@ -65,6 +65,9 @@
       </div>
     </header>
 
+    <!-- Candlestick Chart Card -->
+    <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history" />
+
     <!-- Main Content -->
     <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
@@ -91,44 +94,61 @@
       <div v-else-if="stock" class="space-y-6 animate-fadeIn">
 
 
-        <!-- Candlestick Chart Card -->
-        <div class="bg-white p-6 h-auto rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
-          <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history" />
-        </div>
 
-        <!-- Company Info Card -->
+        <!-- Company Info and Keywords Tab Card -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-          <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">公司信息</h2>
-            <div>
-              {{ stock.introduction || '-' }}
-            </div>
+          <!-- Tab Navigation -->
+          <div class="flex border-b border-gray-200">
+            <button @click="activeTab = 'company'"
+              class="px-6 py-3 text-sm font-medium transition-all duration-200 flex-1 text-center relative -mb-px"
+              :class="[
+                activeTab === 'company'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-semibold'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              ]">
+              公司信息
+            </button>
+            <button @click="activeTab = 'keywords'"
+              class="px-6 py-3 text-sm font-medium transition-all duration-200 flex-1 text-center relative -mb-px"
+              :class="[
+                activeTab === 'keywords'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-semibold'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              ]">
+              股票关键词
+            </button>
           </div>
-        </div>
 
-
-        <!-- Keywords Card -->
-        <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
+          <!-- Tab Content -->
           <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">股票关键词</h2>
-            <div v-if="stock.keywords && stock.keywords.length > 0" class="flex flex-wrap gap-3">
-              <div v-for="(item, index) in stock.keywords" :key="index" class="tooltip-container relative">
-                <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block" :style="{
-                  backgroundColor: `hsl(210, ${item.weight * 100}%, 90%)`,
-                  color: `hsl(210, ${item.weight * 100}%, 20%)`,
-                }">
-                  {{ item.keyword }}
-                </span>
-                <!-- Tooltip 内容 -->
-                <div
-                  class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 w-max">
-                  <span class="text-gray-600">权重: </span>
-                  <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
-                </div>
+            <!-- Company Info Tab -->
+            <div v-if="activeTab === 'company'">
+              <div>
+                {{ stock.introduction || '-' }}
               </div>
             </div>
-            <div v-else class="text-gray-500 text-center py-4">
-              暂无关键词数据
+
+            <!-- Keywords Tab -->
+            <div v-else-if="activeTab === 'keywords'">
+              <div v-if="stock.keywords && stock.keywords.length > 0" class="flex flex-wrap gap-3">
+                <div v-for="(item, index) in stock.keywords" :key="index" class="tooltip-container relative">
+                  <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block" :style="{
+                    backgroundColor: `hsl(210, ${item.weight * 100}%, 90%)`,
+                    color: `hsl(210, ${item.weight * 100}%, 20%)`,
+                  }">
+                    {{ item.keyword }}
+                  </span>
+                  <!-- Tooltip 内容 -->
+                  <div
+                    class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 w-max">
+                    <span class="text-gray-600">权重: </span>
+                    <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-gray-500 text-center py-4">
+                暂无关键词数据
+              </div>
             </div>
           </div>
         </div>
@@ -236,6 +256,9 @@ import { useNuxtApp } from '#app'
 const route = useRoute()
 const router = useRouter()
 const lastUpdateTime = ref('')
+
+// Tab切换状态
+const activeTab = ref<'company' | 'keywords'>('company') // 'company' 或 'keywords'
 
 // 获取股票ID
 const stockId = computed(() => route.params.id as string)
