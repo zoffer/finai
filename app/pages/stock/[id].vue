@@ -66,7 +66,8 @@
     </header>
 
     <!-- Candlestick Chart Card -->
-    <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history" />
+    <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history"
+      :lineData="newsStatistics" />
 
     <!-- Main Content -->
     <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
@@ -156,7 +157,7 @@
         <!-- News List Card -->
         <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
           <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">相关新闻</h2>
+            <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-100">24H新闻</h2>
 
             <!-- News Loading State -->
             <div v-if="isNewsLoading" class="flex flex-col items-center justify-center py-12">
@@ -338,6 +339,14 @@ const { data: history, pending: isHistoryLoading, error: historyError, refresh: 
     signal
   })
   return res.data
+})
+
+const { data: newsStatistics } = useAsyncData(async ({ $api }, { signal }) => {
+  const res = await $api("/api/stock/news/history", {
+    query: { stock_id: stockId.value },
+    signal
+  })
+  return res.data.map(item => ({ time: item.date, value: item.effect }))
 })
 
 
