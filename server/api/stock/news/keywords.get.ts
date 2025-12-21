@@ -37,7 +37,7 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
         .leftJoin(sq, eq(sq.id, tStockKeyword.id))
         .where(eq(tStockKeyword.stock_id, stock_id))
         .groupBy(tStockKeyword.id)
-        .orderBy(desc(sql`news_count`))
+        .orderBy(desc(sql`news_count`), desc(tStockKeyword.weight))
 
     return { data: list };
 });

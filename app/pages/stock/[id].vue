@@ -97,7 +97,7 @@
 
 
         <!-- Company Info and Keywords Tab Card -->
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+        <div class="bg-white rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl">
           <!-- Tab Navigation -->
           <div class="flex border-b border-gray-200">
             <button @click="activeTab = 'keywords'"
@@ -135,6 +135,7 @@
                 <div v-for="(item, index) in keywords" :key="index" class="tooltip-container relative">
                   <span class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block text-gray-600" :style="{
                     backgroundColor: calcTagColor(item.avg_effect),
+                    color: `hsl(${item.avg_effect >= 0 ? 0 : 120}, ${100 * Math.abs(item.avg_effect)}%, 20%)`
                   }">
                     {{ item.keyword }}
                   </span>
@@ -142,19 +143,19 @@
                   <div
                     class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 w-max">
                     <div>
-                      <span class="text-gray-600">权重: </span>
-                      <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
-                    </div>
-                    <div>
-                      <span class="text-gray-600">热度: </span>
-                      <span class="text-blue-500">{{ item.news_count }}</span>
-                    </div>
-                    <div>
-                      <span class="text-gray-600">趋势: </span>
+                      <span class="text-gray-600">行情趋势: </span>
                       <span
                         :class="{ 'text-red-500': item.avg_effect > 0, 'text-green-500': item.avg_effect < 0, 'text-gray-500': item.avg_effect === 0 }">
                         {{ item.avg_effect.toFixed(2) }}
                       </span>
+                    </div>
+                    <div>
+                      <span class="text-gray-600">新闻热度: </span>
+                      <span class="text-blue-500">{{ item.news_count }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-600">关联度: </span>
+                      <span class="text-blue-500">{{ item.weight.toFixed(2) }}</span>
                     </div>
                   </div>
                 </div>
@@ -219,7 +220,7 @@
                           class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 bg-white text-gray-800 text-xs z-50 max-w-lg w-fit min-w-[150px]">
                           <div class="font-semibold mb-1">{{ keyword.keyword }}</div>
                           <div class="mb-1">
-                            <span class="text-gray-600">影响程度: </span>
+                            <span class="text-gray-600">行情趋势: </span>
                             <span :class="keyword.effect >= 0 ? 'text-red-500' : 'text-green-500'">
                               {{ Math.abs(keyword.effect).toFixed(2) }}
                             </span>
@@ -366,7 +367,7 @@ const { data: newsStatistics } = useAsyncData(async ({ $api }, { signal }) => {
     query: { stock_id: stockId.value },
     signal
   })
-  return res.data.map(item => ({ time: item.date, value: item.effect }))
+  return res.data.map(item => ({ time: item.date, value: item.avg_effect }))
 })
 
 const { data: keywords } = useAsyncData(async ({ $api }, { signal }) => {

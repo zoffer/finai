@@ -31,7 +31,7 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
     title: tNews.title,
     content: tNews.content,
     date: tNews.date,
-    keywords: sql<Array<NewsKeywordItem>>`json_agg(json_build_object('keyword', ${tNewsEffect.keyword}, 'effect', ${tNewsEffect.effect} * ${tStockKeyword.weight}, 'confidence', ${tNewsEffect.confidence}, 'reason', ${tNewsEffect.reason}))`,
+    keywords: sql<Array<NewsKeywordItem>>`json_agg(json_build_object('keyword', ${tNewsEffect.keyword}, 'effect', ${tNewsEffect.effect}, 'confidence', ${tNewsEffect.confidence}, 'reason', ${tNewsEffect.reason}))`,
   })
     .from(tNews)
     .innerJoin(tNewsEffect, eq(tNews.id, tNewsEffect.news_id))

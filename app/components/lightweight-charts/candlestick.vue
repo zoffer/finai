@@ -54,6 +54,7 @@ onMounted(() => {
         bottomFillColor2: 'rgb(0, 255, 0, 0)',
     })
 
+    const timeScale = chart.timeScale()
 
     watch(
         () => props.data,
@@ -61,8 +62,7 @@ onMounted(() => {
             if (newData) {
                 const data = [...newData].sort((a, b) => a.time > b.time ? 1 : -1)
                 candlestickSeries.setData(data);
-            } else {
-                candlestickSeries.setData([])
+                timeScale.fitContent()
             }
         },
         { immediate: true }
@@ -74,8 +74,7 @@ onMounted(() => {
             if (newData) {
                 const data = [...newData].sort((a, b) => a.time > b.time ? 1 : -1)
                 newsLineSeries.setData(data);
-            } else {
-                newsLineSeries.setData([])
+                timeScale.fitContent()
             }
         },
         { immediate: true }

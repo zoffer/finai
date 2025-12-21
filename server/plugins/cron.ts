@@ -26,7 +26,6 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         ...common,
-        // 更新股票价格
         cronTime: '0 * * * * *',
         onTick: async () => {
             await StockRankTool.v24h.rerank();
