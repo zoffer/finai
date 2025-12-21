@@ -100,18 +100,18 @@
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
-                    :class="[stock.news_effect > 0 ? 'text-red-500' : stock.news_effect < 0 ? 'text-green-500' : 'text-gray-500']">
+                    :class="[stock.avg_effect > 0 ? 'text-red-500' : stock.avg_effect < 0 ? 'text-green-500' : 'text-gray-500']">
                     <span>
-                      <svg v-if="stock.news_effect > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      <svg v-if="stock.avg_effect > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
                       </svg>
-                      <svg v-else-if="stock.news_effect < 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      <svg v-else-if="stock.avg_effect < 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
                       </svg>
                     </span>
-                    {{ stock.news_effect ? stock.news_effect.toFixed(2) : '0.00' }}
+                    {{ stock.avg_effect ? stock.avg_effect.toFixed(2) : '0.00' }}
                   </div>
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-medium text-blue-600 mt-1">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">

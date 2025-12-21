@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { createChart, CandlestickSeries, BaselineSeries, LineStyle, LineType } from 'lightweight-charts'
+import { createChart, CandlestickSeries, BaselineSeries, LineStyle } from 'lightweight-charts'
 import type { IChartApi, CandlestickData, LineData, } from 'lightweight-charts'
 import { TooltipPrimitive } from './plugins/tooltip'
 
@@ -44,14 +44,13 @@ onMounted(() => {
         lastValueVisible: false,
         priceLineVisible: false,
         lineWidth: 1,
-        lineType: LineType.Curved,
         lineStyle: LineStyle.Solid,
         topLineColor: 'rgb(255, 0, 0, 0.2)',
         topFillColor1: 'rgb(255, 0, 0, 0.2)',
         topFillColor2: 'rgb(255, 0, 0, 0)',
         bottomLineColor: 'rgb(0, 255, 0, 0.2)',
-        bottomFillColor1: 'rgb(0, 255, 0, 0.2)',
-        bottomFillColor2: 'rgb(0, 255, 0, 0)',
+        bottomFillColor1: 'rgb(0, 255, 0, 0)',
+        bottomFillColor2: 'rgb(0, 255, 0, 0.2)',
     })
 
     const timeScale = chart.timeScale()

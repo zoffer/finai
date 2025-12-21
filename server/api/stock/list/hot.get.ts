@@ -25,7 +25,8 @@ export default defineApiEventHandler(async (event: H3Event<{
     db.select({
       stock_id: tStockKeyword.stock_id,
       news_count: sql`count(distinct ${tNews.id})`.as('news_count'),
-      news_effect: sql`sum(${tNewsEffect.effect} * ${tStockKeyword.weight})`.as('news_effect'),
+      sum_effect: sql`coalesce(sum(${tNewsEffect.effect} * ${tStockKeyword.weight}), 0)`.mapWith(Number).as('sum_effect'),
+      avg_effect: sql`coalesce(avg(${tNewsEffect.effect} * ${tStockKeyword.weight}), 0)`.mapWith(Number).as('avg_effect'),
     })
       .from(tStockKeyword)
       .innerJoin(tNewsEffect, eq(tStockKeyword.keyword, tNewsEffect.keyword))
@@ -47,12 +48,13 @@ export default defineApiEventHandler(async (event: H3Event<{
     market_data_time: tStockDynamicData.market_data_time,
     heat_score: tStockDynamicData.heat_score,
     news_count: sql`coalesce(${sq.news_count}, 0)`.mapWith(Number).as('news_count'),
-    news_effect: sql`coalesce(${sq.news_effect}, 0)`.mapWith(Number).as('news_effect'),
+    sum_effect: sq.sum_effect,
+    avg_effect: sq.avg_effect,
   })
     .from(tStock)
     .innerJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
     .leftJoin(sq, eq(tStock.id, sq.stock_id))
-    .orderBy(sql`abs(news_effect) DESC NULLS LAST`, desc(tStockDynamicData.turnover))
+    .orderBy(sql`abs(${sq.avg_effect}) DESC NULLS LAST`, desc(tStockDynamicData.turnover))
     .where(query.search ? or(ilike(tStock.name, `%${query.search}%`), ilike(tStock.symbol, `%${query.search}%`)) : undefined)
     .limit(query.size);
 
