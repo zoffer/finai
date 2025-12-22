@@ -50,28 +50,24 @@
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
                 <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100">
+                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 sticky left-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100">
                   股票
                 </th>
 
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th scope="col" class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700">
                   涨跌/现价
                 </th>
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th scope="col" class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700">
                   成交
                 </th>
-                <th scope="col"
-                  class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th scope="col" class="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700">
                   新闻
                 </th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
               <tr v-for="(stock, i) in stocks || []" :key="stock.id"
-                class="group transition-all duration-300 hover:bg-gray-50 cursor-pointer active:bg-gray-100"
-                :style="{ animationDelay: `${i * 30}ms` }" @click="goToDetail(stock)">
+                class="hover:bg-gray-50 cursor-pointer active:bg-gray-100" @click="goToDetail(stock)">
                 <td
                   class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap sticky left-0 z-0 bg-white group-hover:bg-gray-50">
                   <div class="text-sm text-gray-600">
@@ -94,24 +90,21 @@
                   <div class="text-sm text-gray-500 font-mono">
                     ¥{{ formatVolume(stock.turnover) }}
                   </div>
-                  <div class="text-sm text-gray-500 font-mono mt-1">
-                    {{ formatVolume(stock.volume) }}
-                  </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
-                    :class="[stock.avg_effect > 0 ? 'text-red-500' : stock.avg_effect < 0 ? 'text-green-500' : 'text-gray-500']">
+                    :class="[stock.sum_effect > 0 ? 'text-red-500' : stock.sum_effect < 0 ? 'text-green-500' : 'text-gray-500']">
                     <span>
-                      <svg v-if="stock.avg_effect > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      <svg v-if="stock.sum_effect > 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 13.5 13.5 8.5 8.5 1 16"></polyline>
                       </svg>
-                      <svg v-else-if="stock.avg_effect < 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      <svg v-else-if="stock.sum_effect < 0" viewBox="0 0 24 24" width="14" height="14" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <polyline points="23 16 13.5 6.5 8.5 11.5 1 4"></polyline>
                       </svg>
                     </span>
-                    {{ stock.avg_effect ? stock.avg_effect.toFixed(2) : '0.00' }}
+                    {{ stock.sum_effect ? stock.sum_effect.toFixed(2) : '0.00' }}
                   </div>
                   <div class="flex items-center gap-1 sm:gap-2 text-sm font-medium text-blue-600 mt-1">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
@@ -189,42 +182,9 @@ const refreshStockData = (silence = false) => {
   refresh()
 }
 
-// 定时器引用
-let refreshTimer: Parameters<typeof clearInterval>[0]
-// 设置每分钟自动刷新
-onMounted(() => {
-  // 首次加载完成后，设置定时器
-  refreshTimer = setInterval(() => {
-    refreshStockData(true)
-  }, 60000) // 60秒 = 1分钟
-})
-// 组件卸载时清除定时器
-onUnmounted(() => {
-  clearInterval(refreshTimer)
-})
-
 // 跳转到详情页面
 const goToDetail = (stock: { id: string }) => {
   navigateTo(`/stock/${stock.id}`)
 }
 
 </script>
-
-<style scoped>
-/* 全局动画定义 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-tr {
-  animation: fadeInUp 0.5s ease forwards;
-}
-</style>

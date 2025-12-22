@@ -51,10 +51,7 @@ export function defineApiEventHandler<
             }
             console.error(error);
             setResponseStatus(event, HTTP_STATUS.SERVER_ERROR);
-            if (error != null && typeof error.message == "string") {
-                return new ApiError({ code: "unknown", message: error.message }).body();
-            }
-            return new ApiError({ code: "unknown", message: "unknown error" }).body();
+            return new ApiError({ code: "unknown", message: "server error" }).body();
         }
     }) as EventHandler<Request, EventHandlerResponse<T>>;
 }

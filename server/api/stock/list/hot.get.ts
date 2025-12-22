@@ -1,4 +1,4 @@
-import { eq, desc, ilike, or, sql, gt, and } from 'drizzle-orm';
+import { eq, desc, ilike, or, sql, gt, and, sum, avg, countDistinct } from 'drizzle-orm';
 import type { H3Event } from "h3";
 import { tStock, tStockDynamicData, tStockKeyword } from "~~/drizzle/schema/stock";
 import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
@@ -24,9 +24,9 @@ export default defineApiEventHandler(async (event: H3Event<{
   const sq = db.$with('sq').as(
     db.select({
       stock_id: tStockKeyword.stock_id,
-      news_count: sql`count(distinct ${tNews.id})`.as('news_count'),
-      sum_effect: sql`coalesce(sum(${tNewsEffect.effect} * ${tStockKeyword.weight}), 0)`.mapWith(Number).as('sum_effect'),
-      avg_effect: sql`coalesce(avg(${tNewsEffect.effect} * ${tStockKeyword.weight}), 0)`.mapWith(Number).as('avg_effect'),
+      news_count: countDistinct(tNews.id).as('sq_news_count'),
+      sum_effect: sum(sql`${tNewsEffect.effect} * ${tStockKeyword.weight}`).as('sq_sum_effect'),
+      avg_effect: avg(sql`${tNewsEffect.effect} * ${tStockKeyword.weight}`).as('sq_avg_effect'),
     })
       .from(tStockKeyword)
       .innerJoin(tNewsEffect, eq(tStockKeyword.keyword, tNewsEffect.keyword))
@@ -34,7 +34,7 @@ export default defineApiEventHandler(async (event: H3Event<{
       .groupBy(tStockKeyword.stock_id)
   )
 
-  const stocks = await db.with(sq).select({
+  const t = db.with(sq).select({
     id: tStock.id,
     symbol: tStock.symbol,
     exchange: tStock.exchange,
@@ -48,14 +48,18 @@ export default defineApiEventHandler(async (event: H3Event<{
     market_data_time: tStockDynamicData.market_data_time,
     heat_score: tStockDynamicData.heat_score,
     news_count: sql`coalesce(${sq.news_count}, 0)`.mapWith(Number).as('news_count'),
-    sum_effect: sq.sum_effect,
-    avg_effect: sq.avg_effect,
+    sum_effect: sql`coalesce(${sq.sum_effect}, 0)`.mapWith(Number).as('sum_effect'),
+    avg_effect: sql`coalesce(${sq.avg_effect}, 0)`.mapWith(Number).as('avg_effect'),
   })
     .from(tStock)
     .innerJoin(tStockDynamicData, eq(tStock.id, tStockDynamicData.stock_id))
     .leftJoin(sq, eq(tStock.id, sq.stock_id))
-    .orderBy(sql`abs(${sq.avg_effect}) DESC NULLS LAST`, desc(tStockDynamicData.turnover))
     .where(query.search ? or(ilike(tStock.name, `%${query.search}%`), ilike(tStock.symbol, `%${query.search}%`)) : undefined)
+    .as('t')
+
+  const stocks = await db.select()
+    .from(t)
+    .orderBy(sql`(abs(${t.sum_effect}) * ln(coalesce(${t.turnover}, 0) + 1)) DESC NULLS LAST`, desc(t.turnover))
     .limit(query.size);
 
   return { data: stocks };

@@ -3,6 +3,7 @@ import { crawlCLSNews } from "~~/server/utils/stock/source/aktools/cls-news";
 import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
 import { desc, eq, and, gt, sql } from 'drizzle-orm';
 import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
+import { PromiseTool } from '~~/server/utils/promise-tool';
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
 
@@ -97,11 +98,12 @@ export async function getNewsKeywordTask(num = 10) {
         .orderBy(desc(tNews.date)).limit(num);
     const tasks = new Map<string, () => Promise<void>>();
     for (const item of news) {
-        tasks.set(item.id, async () => {
+        const fn = async () => {
             console.log(`Analyze news: ${item.title}`);
             const analysis = await analyzeNews(item);
             await saveAnalyze(item, analysis);
-        })
+        }
+        tasks.set(item.id, () => PromiseTool.retry(fn, { delay: (i) => (1000 * 10) << i, retries: 2 }))
     }
     return tasks;
 }

@@ -18,6 +18,8 @@ services:
       net:
         aliases:
           - aktools
+    environment:
+      TZ: Asia/Shanghai
   postgres:
     <<: *bs
     image: postgres:18-alpine
@@ -27,6 +29,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
     environment:
+      TZ: Asia/Shanghai
       POSTGRES_DB: finai
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
@@ -45,6 +48,8 @@ services:
       net:
         aliases:
           - redis
+    environment:
+      TZ: Asia/Shanghai
   migrate:
     <<: *bs
     image: ${DOCKER_REGISTRY}migrate:${TAG}
@@ -55,6 +60,7 @@ services:
     pull_policy: always
     restart: "no"
     environment:
+      TZ: Asia/Shanghai
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/finai"
     depends_on:
       - postgres
@@ -68,6 +74,7 @@ services:
     pull_policy: always
     restart: always
     environment:
+      TZ: Asia/Shanghai
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/finai"
       REDIS_URL: "redis://redis:6379"
       AKTOOLS_URL: "http://aktools:8080"

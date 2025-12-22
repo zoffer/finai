@@ -4,7 +4,7 @@ import { getStockKeywordTask } from './keyword/stock';
 import { getNewsKeywordTask } from './keyword/news';
 
 const TaskQueue = Object.freeze({
-    ai: new PQueue({ concurrency: 2, interval: 1000 * 10, intervalCap: 1 })
+    ai: new PQueue({ concurrency: 2, interval: 1000 * 30, intervalCap: 1 })
 })
 
 TaskQueue.ai.on('active', () => {
