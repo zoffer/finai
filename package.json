@@ -8,7 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "db-push:dev": "dotenv -e .env.dev -- drizzle-kit push --verbose"
+    "db:push:dev": "dotenv -e .env.dev -- drizzle-kit push --verbose",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^1.0.31",

@@ -121,7 +121,8 @@ docker-compose up -d --no-build
 | `build` | 构建生产版本 |
 | `generate` | 静态生成网站 |
 | `preview` | 预览生产构建 |
-| `db-push:dev` | 推送数据库变更到开发环境 |
+| `db:push:dev` | 推送数据库变更到开发环境 |
+| `db:generate` | 生成数据库迁移文件 |
 
 ## 开发文档
 
