@@ -1,69 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Header -->
-    <header class="text-white shadow-lg sticky top-0 z-50" :class="[
-      (stock?.change || 0) > 0 ? 'bg-gradient-to-r from-red-500 to-red-600' : '',
-      (stock?.change || 0) < 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : '',
-      (stock?.change || 0) === 0 ? 'bg-gradient-to-r from-gray-600 to-gray-700' : ''
-    ]">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex justify-between items-center">
-          <!-- 左侧信息：返回按钮 + 股票基本信息 -->
-          <div class="flex items-center gap-3">
-            <button @click="goBack"
-              class="flex items-center justify-center p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-              aria-label="返回列表">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-            <div>
-              <h1 class="text-xl md:text-2xl font-bold">{{ stock?.name || '股票详情' }}</h1>
-              <p class="text-xs md:text-sm opacity-90 mt-0.5">{{ stock?.symbol }} - {{ stock?.exchange }}</p>
-            </div>
-          </div>
-
-          <!-- 右侧价格信息 -->
-          <div class="flex flex-col items-end gap-2">
-            <!-- 当前价格 -->
-            <div class="text-2xl md:text-3xl font-bold">
-              ¥{{ formatPrice(stock?.price) }}
-            </div>
-            <!-- 涨跌幅 -->
-            <div class="flex items-center gap-2 text-sm font-semibold" :class="[
-              (stock?.change || 0) > 0 ? 'text-red-100' : '',
-              (stock?.change || 0) < 0 ? 'text-green-100' : '',
-              (stock?.change || 0) === 0 ? 'text-gray-100' : ''
-            ]">
-              {{ (stock?.change || 0) > 0 ? '+' : '' }}{{ (stock?.change || 0).toFixed(2) }}% (¥{{
-                formatPrice(stock?.changeAmount)
-              }})
-            </div>
-          </div>
-        </div>
-
-        <!-- 统计信息 -->
-        <div class="flex justify-between gap-y-1 gap-x-4 mt-2 text-sm opacity-95">
-          <span class="text-center">
-            <span class="opacity-75 block sm:inline mx-1">开盘</span>
-            <span class="text-nowrap"> ¥{{ formatPrice(stock?.open) }} </span>
-          </span>
-          <span class="text-center">
-            <span class="opacity-75 block sm:inline mx-1">最高</span>
-            <span class="text-nowrap"> ¥{{ formatPrice(stock?.high) }} </span>
-          </span>
-          <span class="text-center">
-            <span class="opacity-75 block sm:inline mx-1">最低</span>
-            <span class="text-nowrap"> ¥{{ formatPrice(stock?.low) }} </span>
-          </span>
-          <span class="text-center">
-            <span class="opacity-75 block sm:inline mx-1">成交</span>
-            <span class="text-nowrap"> {{ formatVolume(stock?.turnover) }} </span>
-          </span>
-        </div>
-      </div>
-    </header>
+    <PagesStockDetailHeader :stock="stock" />
 
     <!-- Candlestick Chart Card -->
     <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history"
@@ -263,36 +201,14 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAsyncData } from 'nuxt/app'
-import { useNuxtApp } from '#app'
 
 const route = useRoute()
-const router = useRouter()
-const lastUpdateTime = ref('')
 
 // Tab切换状态
 const activeTab = ref<'company' | 'keywords'>('keywords') // 'company' 或 'keywords'
 
 // 获取股票ID
 const stockId = computed(() => route.params.id as string)
-
-// 格式化价格
-const formatPrice = (price: number | null | undefined) => {
-  if (price === null || price === undefined) return '0.00'
-  return price.toFixed(2)
-}
-
-// 格式化成交量（符合中文习惯）
-const formatVolume = (volume: number | null | undefined) => {
-  if (volume === null || volume === undefined) return '0'
-  if (volume >= 100000000) {
-    return (volume / 100000000).toFixed(2) + '亿'
-  } else if (volume >= 10000) {
-    return (volume / 10000).toFixed(2) + '万'
-  }
-  return volume.toString()
-}
 
 const calcTagColor = (effect: number) => {
   if (effect >= 0) {
@@ -315,34 +231,13 @@ const formatDate = (dateStr: string | null | undefined) => {
   })
 }
 
-// 更新最后更新时间
-const updateLastUpdateTime = (): void => {
-  const now = new Date()
-  lastUpdateTime.value = `最后更新: ${now.toLocaleTimeString('zh-CN')}`
-}
-
 // 使用useAsyncData获取股票详情
 const { data: stock, pending: isLoading, error, refresh } = useAsyncData(`stock-${stockId.value}`, async () => {
   const { $api } = useNuxtApp()
   const res = await $api("/api/stock/info", {
     query: { id: stockId.value }
   })
-
-  // 计算涨跌幅
-  const stockData = res.data
-  const currentPrice = stockData?.price || 0
-  const openPrice = stockData?.open || 0
-  const change = openPrice > 0 ? ((currentPrice - openPrice) / openPrice * 100) : 0
-  const changeAmount = currentPrice - openPrice
-
-  // 更新最后更新时间
-  updateLastUpdateTime()
-
-  return {
-    ...stockData,
-    change: parseFloat(change.toFixed(2)),
-    changeAmount: parseFloat(changeAmount.toFixed(2)),
-  }
+  return res.data
 })
 
 // 使用useAsyncData获取新闻列表
@@ -377,12 +272,6 @@ const { data: keywords } = useAsyncData(async ({ $api }, { signal }) => {
   })
   return res.data
 })
-
-
-// 返回上一页
-const goBack = (): void => {
-  router.back()
-}
 </script>
 
 <style scoped>
