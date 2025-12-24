@@ -22,7 +22,7 @@ const rules = {
 export function formatLargeNumber(num: number, options: { locale?: keyof typeof rules, precision?: number } = {}) {
     const {
         locale = 'zh-CN',
-        precision = 1
+        precision = 2
     } = options;
 
     // 处理非数字/0的情况

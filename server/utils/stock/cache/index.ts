@@ -16,6 +16,8 @@ export type DynamicData = {
     open: number; // 开盘价
     high: number; // 最高价
     low: number; // 最低价
+    change: number; // 涨跌额
+    change_percent: number; // 涨跌幅
     volume: number; // 成交量
     turnover: number; // 成交额
     market_data_time: Date, // 数据时间戳
@@ -67,6 +69,8 @@ export const StockCache = {
                     open: item.open,
                     high: item.high,
                     low: item.low,
+                    change: item.change,
+                    change_percent: item.change_percent,
                     volume: item.volume,
                     turnover: item.turnover,
                     market_data_time: item.market_data_time,
@@ -83,6 +87,8 @@ export const StockCache = {
                 open: sql`EXCLUDED.open`,
                 high: sql`EXCLUDED.high`,
                 low: sql`EXCLUDED.low`,
+                change: sql`EXCLUDED.change`,
+                change_percent: sql`EXCLUDED.change_percent`,
                 volume: sql`EXCLUDED.volume`,
                 turnover: sql`EXCLUDED.turnover`,
                 market_data_time: sql`EXCLUDED.market_data_time`,

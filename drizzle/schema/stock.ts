@@ -23,12 +23,14 @@ export const tStockDynamicData = pgTable("stock_dynamic_data", {
     id: text().primaryKey().default(sql`uuidv7()`),
     stock_id: text().notNull().unique(), // 关联到stock表的外键
     // 市场信息
-    price: numeric({ mode: 'number' }).notNull(), // 当前价格
-    open: numeric({ mode: 'number' }).notNull(), // 开盘价
-    high: numeric({ mode: 'number' }).notNull(), // 最高价
-    low: numeric({ mode: 'number' }).notNull(), // 最低价
-    volume: numeric({ mode: 'number' }).notNull(), // 成交量
-    turnover: numeric({ mode: 'number' }).notNull(), // 成交额
+    price: numeric({ mode: 'number' }).notNull().default(0), // 当前价格
+    open: numeric({ mode: 'number' }).notNull().default(0), // 开盘价
+    high: numeric({ mode: 'number' }).notNull().default(0), // 最高价
+    low: numeric({ mode: 'number' }).notNull().default(0), // 最低价
+    change: numeric({ mode: 'number' }).notNull().default(0), // 涨跌额
+    change_percent: numeric({ mode: 'number' }).notNull().default(0), // 涨跌幅
+    volume: numeric({ mode: 'number' }).notNull().default(0), // 成交量
+    turnover: numeric({ mode: 'number' }).notNull().default(0), // 成交额
     market_data_time: timestamp({ withTimezone: true }).notNull(), // 数据时间戳
     // 网站信息
     visits_24h: integer().notNull().default(0), // 24小时访问量

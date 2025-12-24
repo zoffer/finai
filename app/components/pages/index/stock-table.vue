@@ -33,7 +33,7 @@
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                     <div class="flex items-center gap-1 sm:gap-2 text-sm font-bold"
                         :class="[stock.change > 0 ? 'text-red-500' : 'text-green-500']">
-                        {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
+                        {{ stock.change > 0 ? '+' : '' }}{{ stock.change_percent.toFixed(2) }}%
                     </div>
                     <div class="text-sm font-bold text-gray-900 mt-1">
                         ¥{{ stock.price.toFixed(2) }}
@@ -41,7 +41,7 @@
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
                     <div class="text-sm text-gray-500 font-mono">
-                        ¥{{ stock.turnoverFormatted }}
+                        ¥{{ formatLargeNumber(stock.turnover) }}
                     </div>
                 </td>
                 <td class="px-3 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
@@ -76,32 +76,24 @@
 import { formatLargeNumber } from '@/utils/format/number'
 
 type Stock = {
-    id: string
-    name: string
-    symbol: string
-    price: number
-    sum_effect: number
-    turnover: number
-    news_count: number
-    open: number
-    high: number
-    low: number
+    id: string;
+    name: string;
+    symbol: string;
+    price: number;
+    sum_effect: number;
+    turnover: number;
+    news_count: number;
+    open: number;
+    high: number;
+    low: number;
+    change: number;
+    change_percent: number;
 }
 const props = defineProps<{
     data?: Stock[]
 }>()
 
-const stocks = computed(() => {
-    if (!props.data) { return [] }
-    return props.data.map(stock => {
-        const change = (stock.price - stock.open) / stock.open * 100
-        return {
-            ...stock,
-            change,
-            turnoverFormatted: formatLargeNumber(stock.turnover, { locale: 'zh-CN', precision: 2 })
-        }
-    })
-})
+const stocks = computed(() => props.data || [])
 
 const emit = defineEmits<{
     (e: 'item-click', stock: Stock): void

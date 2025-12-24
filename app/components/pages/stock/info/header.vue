@@ -1,8 +1,8 @@
 <template>
     <header class="text-white shadow-lg sticky top-0 z-50" :class="[
-        changeDetail.change > 0 ? 'bg-gradient-to-r from-red-500 to-red-600' : '',
-        changeDetail.change < 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : '',
-        changeDetail.change === 0 ? 'bg-gradient-to-r from-gray-600 to-gray-700' : ''
+        stock.change > 0 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+            stock.change < 0 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                'bg-gradient-to-r from-gray-600 to-gray-700'
     ]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div class="flex justify-between items-center">
@@ -17,8 +17,8 @@
                         </svg>
                     </button>
                     <div>
-                        <h1 class="text-xl md:text-2xl font-bold">{{ stock?.name || '股票详情' }}</h1>
-                        <p class="text-xs md:text-sm opacity-90 mt-0.5">{{ stock?.symbol }} - {{ stock?.exchange }}</p>
+                        <h1 class="text-xl md:text-2xl font-bold">{{ stock.name || '股票详情' }}</h1>
+                        <p class="text-xs md:text-sm opacity-90 mt-0.5">{{ stock.symbol }} - {{ stock.exchange }}</p>
                     </div>
                 </div>
 
@@ -26,17 +26,13 @@
                 <div class="flex flex-col items-end gap-2">
                     <!-- 当前价格 -->
                     <div class="text-2xl md:text-3xl font-bold">
-                        ¥{{ stock?.price }}
+                        ¥{{ stock.price }}
                     </div>
                     <!-- 涨跌幅 -->
-                    <div class="flex items-center gap-2 text-sm font-semibold" :class="[
-                        changeDetail.change > 0 ? 'text-red-100' : '',
-                        changeDetail.change < 0 ? 'text-green-100' : '',
-                        changeDetail.change === 0 ? 'text-gray-100' : ''
-                    ]">
-                        {{ changeDetail?.change > 0 ? '+' : '' }}
-                        {{ changeDetail?.change.toFixed(2) }}%
-                        (¥{{ changeDetail?.changeAmount.toFixed(2) }})
+                    <div class="flex items-center justify-center gap-2 text-sm font-semibold">
+                        {{ stock.change_percent > 0 ? '+' : '' }}{{ stock.change_percent.toFixed(2) }}%
+                        <span class="opacity-25">|</span>
+                        {{ stock.change > 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}
                     </div>
                 </div>
             </div>
@@ -45,19 +41,19 @@
             <div class="flex justify-between gap-y-1 gap-x-4 mt-2 text-sm opacity-95">
                 <span class="text-center">
                     <span class="opacity-75 block sm:inline mx-1">开盘</span>
-                    <span class="text-nowrap"> ¥{{ stock?.open }} </span>
+                    <span class="text-nowrap"> ¥{{ stock.open }} </span>
                 </span>
                 <span class="text-center">
                     <span class="opacity-75 block sm:inline mx-1">最高</span>
-                    <span class="text-nowrap"> ¥{{ stock?.high }} </span>
+                    <span class="text-nowrap"> ¥{{ stock.high }} </span>
                 </span>
                 <span class="text-center">
                     <span class="opacity-75 block sm:inline mx-1">最低</span>
-                    <span class="text-nowrap"> ¥{{ stock?.low }} </span>
+                    <span class="text-nowrap"> ¥{{ stock.low }} </span>
                 </span>
                 <span class="text-center">
                     <span class="opacity-75 block sm:inline mx-1">成交</span>
-                    <span class="text-nowrap"> ¥{{ formatNumber(stock?.turnover) }} </span>
+                    <span class="text-nowrap"> ¥{{ formatLargeNumber(stock.turnover) }} </span>
                 </span>
             </div>
         </div>
@@ -67,49 +63,30 @@
 <script setup lang="ts">
 import { formatLargeNumber } from '@/utils/format/number'
 
-type Stock = {
-    id: string
-    name: string
-    symbol: string
-    price: number
-    turnover: number
-    exchange: string
-    open: number
-    high: number
-    low: number
+const defaultStock = {
+    id: '',
+    name: '--',
+    symbol: '--',
+    exchange: '--',
+    price: 0,
+    open: 0,
+    high: 0,
+    low: 0,
+    change: 0,
+    change_percent: 0,
+    turnover: 0,
+    volume: 0,
 }
+
+type Stock = typeof defaultStock
 
 const props = defineProps<{
-    stock?: Stock
+    data?: Stock
 }>()
 
-const changeDetail = computed(() => {
-    if (!props.stock) {
-        return {
-            change: 0,
-            changeAmount: 0,
-        }
-    }
-    const currentPrice = props.stock.price || 0
-    const openPrice = props.stock.open || 0
-    const changeAmount = currentPrice - openPrice
-    const change = openPrice > 0 ? (changeAmount / openPrice * 100) : 0
-    return {
-        change,
-        changeAmount,
-    }
-})
-
-const emit = defineEmits<{
-    (e: 'item-click', stock: Stock): void
-}>()
+const stock = computed(() => props.data || defaultStock)
 
 const router = useRouter()
-
-// 格式化价格（符合中文习惯）
-const formatNumber = (price?: number) => price ? formatLargeNumber(price, { locale: 'zh-CN', precision: 2 }) : '0.0'
 // 返回上一页
-const goBack = (): void => {
-    router.back()
-}
+const goBack = () => router.back()
 </script>

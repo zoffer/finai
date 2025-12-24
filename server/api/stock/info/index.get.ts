@@ -32,6 +32,8 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
     open: tStockDynamicData.open,
     high: tStockDynamicData.high,
     low: tStockDynamicData.low,
+    change: tStockDynamicData.change,
+    change_percent: tStockDynamicData.change_percent,
     volume: tStockDynamicData.volume,
     turnover: tStockDynamicData.turnover,
     data_time: tStockDynamicData.market_data_time,

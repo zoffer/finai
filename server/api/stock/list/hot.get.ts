@@ -43,6 +43,8 @@ export default defineApiEventHandler(async (event: H3Event<{
     open: tStockDynamicData.open,
     high: tStockDynamicData.high,
     low: tStockDynamicData.low,
+    change: tStockDynamicData.change,
+    change_percent: tStockDynamicData.change_percent,
     volume: tStockDynamicData.volume,
     turnover: tStockDynamicData.turnover,
     market_data_time: tStockDynamicData.market_data_time,
