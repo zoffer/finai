@@ -4,15 +4,14 @@
 
 ## 技术栈
 
-- **前端框架**: Nuxt.js 4
-- **后端**: Node.js (Nuxt Server API)
+- **全栈框架**: Nuxt.js 4
 - **数据库**: PostgreSQL + Drizzle ORM
 - **缓存**: Redis
 - **定时任务**: cron
 - **AI集成**: @ai-sdk/deepseek, ai
 - **样式**: TailwindCSS + Sass
 - **认证**: JWT (jose)
-- **容器化**: Docker + Docker Compose
+- **容器化**: Docker
 
 ## 项目结构
 
@@ -36,24 +35,14 @@
 
 ### 环境要求
 
-- Node.js 18+
-- npm/pnpm/yarn/bun
-- Docker (可选，用于容器化部署)
+- Node.js 20+
+- Docker
 
 ### 安装依赖
 
 ```bash
 # npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
 ### 环境配置
@@ -73,15 +62,11 @@ cp .env.example .env.dev
 ```bash
 # npm
 npm run dev
+```
 
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+若开发环境缺少数据库等依赖服务，可执行以下命令快速创建：
+```
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### 数据库迁移
@@ -96,13 +81,6 @@ npm run db-push:dev
 
 ### 本地构建
 
-```bash
-# 构建生产版本
-npm run build
-
-# 预览生产构建
-npm run preview
-```
 
 ### Docker部署
 
@@ -113,10 +91,19 @@ cp .env.example .env
 # 编辑.env文件，设置生产环境变量
 ```
 
-2. 使用Docker Compose启动服务
+2. 构建生产版本
 
 ```bash
-docker-compose up -d
+# 构建生产版本
+docker compose build
+# 推送生产版本到镜像仓库
+docker compose push
+```
+
+3. 使用Docker Compose启动服务
+
+```bash
+docker-compose up -d --no-build
 ```
 
 ## 关键功能
