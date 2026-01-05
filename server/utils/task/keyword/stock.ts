@@ -2,7 +2,8 @@ import { z } from "zod";
 import { crawlXQStockInfo } from "~~/server/utils/stock/source/aktools/info-xq";
 import { tStockKeyword, tStock, tStockDynamicData } from '~~/drizzle/schema/stock';
 import { sql, and, eq, max, or, lt, isNull } from 'drizzle-orm';
-import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
+import { aiProvider } from '~~/server/utils/ai/provider';
+import { generateText, Output } from 'ai';
 
 const SystemPrompt = `
 你是一名专业的证券分析与自然语言处理（NLP）助手。
@@ -43,20 +44,21 @@ async function generateStockKeywords(stock: { symbol: string, exchange: string, 
     infos.unshift({ item: "exchange", value: stock.exchange, })
     infos.unshift({ item: "symbol", value: stock.symbol, })
 
-    const response = await zhipuAI.chat({
+    const res = await generateText({
+        model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
         messages: [
             { role: "system", content: SystemPrompt },
             { role: "user", content: JSON.stringify(infos) },
         ],
-        response_format: { type: "json_object" },
+        output: Output.json(),
+        maxRetries: 0,
         temperature: 0,
-    });
+    })
 
-    const content = response.choices[0].message.content || ""
     return await z.array(z.object({
         keyword: z.string(),
         weight: z.number().min(0).max(1),
-    })).parse(JSON.parse(content))
+    })).parse(res.output)
 }
 
 async function saveStockKeywords(stock: { symbol: string, exchange: string, }, keywords: { keyword: string, weight: number }[]) {

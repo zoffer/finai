@@ -1,5 +1,5 @@
 import { sqlTimestamps, customNanoid } from "./common";
-import { pgTable, text, index, uniqueIndex, numeric, timestamp, integer, real, smallint, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, index, uniqueIndex, numeric, timestamp, integer, real } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // 股票基本信息表

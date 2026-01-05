@@ -2,8 +2,9 @@ import { z } from "zod";
 import { crawlCLSNews } from "~~/server/utils/stock/source/aktools/cls-news";
 import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
 import { desc, eq, and, gt, sql } from 'drizzle-orm';
-import { zhipuAI } from '~~/server/utils/ai/provider/zhipu';
+import { aiProvider } from '~~/server/utils/ai/provider';
 import { PromiseTool } from '~~/server/utils/promise-tool';
+import { generateText, Output } from 'ai';
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
 
@@ -50,21 +51,21 @@ async function crawlNews() {
 }
 
 async function analyzeNews(news: { id: string, title: string, content: string }) {
-    const response = await zhipuAI.chat({
+    const res = await generateText({
+        model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
         messages: [
             { role: "system", content: SystemPrompt },
             { role: "user", content: news.content },
         ],
-        response_format: { type: "json_object" },
-        temperature: 0,
-    });
-    const content = response.choices[0].message.content || ""
+        output: Output.json(),
+        maxRetries: 0,
+    })
     const analysis = await z.array(z.object({
         keyword: z.string(),
         effect: z.number().min(-1).max(1),
         confidence: z.number().min(0).max(1),
         reason: z.string(),
-    })).parse(JSON.parse(content))
+    })).parse(res.output)
     return analysis;
 }
 
