@@ -15,6 +15,13 @@
       "when": 1766584569121,
       "tag": "0001_stock_dynamic_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767603532005,
+      "tag": "0002_enable-vector",
+      "breakpoints": true
     }
   ]
 }

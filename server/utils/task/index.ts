@@ -1,20 +1,22 @@
-import PQueue from 'p-queue';
-import { EventEmitter } from 'events';
-import { getStockKeywordTask } from './keyword/stock';
-import { getNewsKeywordTask } from './keyword/news';
+import PQueue from "p-queue";
+import { EventEmitter } from "events";
+import { getStockKeywordTask } from "./keyword/stock";
+import { getNewsKeywordTask } from "./keyword/news";
 
 const TaskQueue = Object.freeze({
-    ai: new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 })
-})
+    ai: new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 }),
+});
 
-TaskQueue.ai.on('active', () => {
+TaskQueue.ai.on("active", () => {
     console.log(`[${new Date().toISOString()}]: Size: ${TaskQueue.ai.size}  Pending: ${TaskQueue.ai.pending}`);
 });
 
 const TaskInQueue = new Set<string>();
 
-async function addTaskToQueue(id: string, ...args: Parameters<PQueue['add']>) {
-    if (TaskInQueue.has(id)) { return; }
+async function addTaskToQueue(id: string, ...args: Parameters<PQueue["add"]>) {
+    if (TaskInQueue.has(id)) {
+        return;
+    }
     try {
         TaskInQueue.add(id);
         await TaskQueue.ai.add(...args);
@@ -36,14 +38,18 @@ TaskEmitter.on("stock/ai/keyword", async (num) => {
     const tasks = await getStockKeywordTask(num);
     for (const [id, task] of tasks) {
         addTaskToQueue(`stock:keyword:${id}`, task);
-        if (TaskQueue.ai.size >= 100) { break; }
+        if (TaskQueue.ai.size >= 100) {
+            break;
+        }
     }
-})
+});
 
 TaskEmitter.on("news/ai/keyword", async (num) => {
     const tasks = await getNewsKeywordTask(num);
     for (const [id, task] of tasks) {
         addTaskToQueue(`news:keyword:${id}`, task, { priority: 1 });
-        if (TaskQueue.ai.size >= 100) { break; }
+        if (TaskQueue.ai.size >= 100) {
+            break;
+        }
     }
-})
+});

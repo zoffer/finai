@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { crawlCLSNews } from "~~/server/utils/stock/source/aktools/cls-news";
-import { tNews, tNewsEffect } from '~~/drizzle/schema/news';
-import { desc, eq, and, gt, sql } from 'drizzle-orm';
-import { aiProvider } from '~~/server/utils/ai/provider';
-import { PromiseTool } from '~~/server/utils/promise-tool';
-import { generateText, Output } from 'ai';
+import { tNews, tNewsEffect } from "~~/drizzle/schema/news";
+import { desc, eq, and, gt, sql } from "drizzle-orm";
+import { aiProvider } from "~~/server/utils/ai/provider";
+import { PromiseTool } from "~~/server/utils/promise-tool";
+import { generateText, Output } from "ai";
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
 
@@ -44,13 +43,7 @@ JSON 输出格式如下：
 4. 输出必须是严格合法 JSON，不得包含解释文字。
 `;
 
-
-async function crawlNews() {
-    const news = await crawlCLSNews();
-    await db.insert(tNews).values(news).onConflictDoNothing();
-}
-
-async function analyzeNews(news: { id: string, title: string, content: string }) {
+async function analyzeNews(news: { id: string; title: string; content: string }) {
     const res = await generateText({
         model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
         messages: [
@@ -59,52 +52,67 @@ async function analyzeNews(news: { id: string, title: string, content: string })
         ],
         output: Output.json(),
         maxRetries: 0,
-    })
-    const analysis = await z.array(z.object({
-        keyword: z.string(),
-        effect: z.number().min(-1).max(1),
-        confidence: z.number().min(0).max(1),
-        reason: z.string(),
-    })).parse(res.output)
+    });
+    const analysis = await z
+        .array(
+            z.object({
+                keyword: z.string(),
+                effect: z.number().min(-1).max(1),
+                confidence: z.number().min(0).max(1),
+                reason: z.string(),
+            })
+        )
+        .parse(res.output);
     return analysis;
 }
 
-async function saveAnalyze(news: { id: string }, analysis: { keyword: string; effect: number; confidence: number; reason: string; }[]) {
+async function saveAnalyze(
+    news: { id: string },
+    analysis: { keyword: string; effect: number; confidence: number; reason: string }[]
+) {
     await db.transaction(async (tx) => {
         const count = await tx.$count(tNews, eq(tNews.id, news.id));
-        if (count === 0) { return; }
-        await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id))
-        await tx.insert(tNewsEffect).values(analysis.map(a => ({
-            news_id: news.id,
-            keyword: a.keyword,
-            effect: a.effect,
-            confidence: a.confidence,
-            reason: a.reason,
-        })))
-    })
+        if (count === 0) {
+            return;
+        }
+        await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id));
+        await tx.insert(tNewsEffect).values(
+            analysis.map((a) => ({
+                news_id: news.id,
+                keyword: a.keyword,
+                effect: a.effect,
+                confidence: a.confidence,
+                reason: a.reason,
+            }))
+        );
+    });
 }
 
 export async function getNewsKeywordTask(num = 10) {
-    await crawlNews();
-    const news = await db.select({
-        id: tNews.id,
-        title: tNews.title,
-        content: tNews.content,
-        date: tNews.date,
-    }).from(tNews)
-        .where(and(
-            gt(tNews.date, sql`now() - interval '24 hours'`),
-            eq(db.$count(tNewsEffect, eq(tNewsEffect.news_id, tNews.id)), 0),
-        ))
-        .orderBy(desc(tNews.date)).limit(num);
+    const news = await db
+        .select({
+            id: tNews.id,
+            title: tNews.title,
+            content: tNews.content,
+            date: tNews.date,
+        })
+        .from(tNews)
+        .where(
+            and(
+                gt(tNews.date, sql`now() - interval '24 hours'`),
+                eq(db.$count(tNewsEffect, eq(tNewsEffect.news_id, tNews.id)), 0)
+            )
+        )
+        .orderBy(desc(tNews.date))
+        .limit(num);
     const tasks = new Map<string, () => Promise<void>>();
     for (const item of news) {
         const fn = async () => {
             console.log(`Analyze news: ${item.title}`);
             const analysis = await analyzeNews(item);
             await saveAnalyze(item, analysis);
-        }
-        tasks.set(item.id, () => PromiseTool.retry(fn, { delay: (i) => (1000 * 10) << i, retries: 2 }))
+        };
+        tasks.set(item.id, () => PromiseTool.retry(fn, { delay: (i) => (1000 * 10) << i, retries: 2 }));
     }
     return tasks;
 }
