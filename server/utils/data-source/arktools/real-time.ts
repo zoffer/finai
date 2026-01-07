@@ -1,4 +1,17 @@
-import type { DynamicData } from "~~/server/utils/stock/cache";
+type DynamicData = {
+    // 市场信息
+    symbol: string; // 股票代码
+    exchange: string; // 交易所
+    price: number; // 当前价格
+    open: number; // 开盘价
+    high: number; // 最高价
+    low: number; // 最低价
+    change: number; // 涨跌额
+    change_percent: number; // 涨跌幅
+    volume: number; // 成交量
+    turnover: number; // 成交额
+    market_data_time: Date; // 数据时间戳
+};
 
 const AKTOOLS_URL = process.env.AKTOOLS_URL;
 
@@ -38,22 +51,22 @@ function parsePastBeijingTimeUTC(timeStr: string) {
 
 export async function crawlStockRealTimePrice(): Promise<Array<DynamicData>> {
     type AkStockPrice = {
-        "代码": string,
-        "名称": string,
-        "最新价": number,
-        "涨跌额": number,
-        "涨跌幅": number,
-        "买入": number,
-        "卖出": number,
-        "昨收": number,
-        "今开": number,
-        "最高": number,
-        "最低": number,
-        "成交量": number,
-        "成交额": number,
-        "时间戳": string;
-    }
-    const res = await $fetch<Array<AkStockPrice>>(`${AKTOOLS_URL}/api/public/stock_zh_a_spot`)
+        代码: string;
+        名称: string;
+        最新价: number;
+        涨跌额: number;
+        涨跌幅: number;
+        买入: number;
+        卖出: number;
+        昨收: number;
+        今开: number;
+        最高: number;
+        最低: number;
+        成交量: number;
+        成交额: number;
+        时间戳: string;
+    };
+    const res = await $fetch<Array<AkStockPrice>>(`${AKTOOLS_URL}/api/public/stock_zh_a_spot`);
     return res.map((r) => {
         const exchange = r["代码"].slice(0, 2).toUpperCase();
         const symbol = r["代码"].slice(2).toUpperCase();
@@ -69,6 +82,6 @@ export async function crawlStockRealTimePrice(): Promise<Array<DynamicData>> {
             volume: r["成交量"], // 成交量
             turnover: r["成交额"], // 成交额
             market_data_time: parsePastBeijingTimeUTC(r["时间戳"]), // 数据时间戳
-        }
-    })
+        };
+    });
 }

@@ -1,14 +1,15 @@
 import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
+import { db } from "~~/server/utils/db";
 import { sql, inArray } from "drizzle-orm";
 
-export type StockData = {
+type StockData = {
     symbol: string;
     name: string;
     exchange: string;
     industry: string;
 };
 
-export type DynamicData = {
+type DynamicData = {
     // 市场信息
     symbol: string; // 股票代码
     exchange: string; // 交易所
@@ -35,7 +36,7 @@ function calcHeatScore(item: DynamicData, visits_24h: number) {
     return score;
 }
 
-export const StockCache = {
+export const stockDbHelper = {
     async saveStock(data: Array<StockData>) {
         await db
             .insert(tStock)

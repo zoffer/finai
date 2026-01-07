@@ -27,8 +27,8 @@ export const newsDbHelper = {
         }
         return list[0];
     },
-    async getNewsSubitem(news_id: string, table: typeof tNewsEffect) {
-        return db.select({ id: table.id }).from(table).where(eq(table.news_id, news_id));
+    async countSubitem(news_id: string, table: typeof tNewsEffect) {
+        return db.$count(table, eq(table.news_id, news_id));
     },
     async saveKeywordEffect(
         news: { id: string },

@@ -1,6 +1,6 @@
 import { CronJob } from "cron";
-import { StockEmitter } from "../utils/stock/index";
-import { TaskEmitter } from "../utils/task/index";
+import { TaskEmitter } from "~~/server/utils/task/index";
+import { StockRankTool } from "~~/server/utils/redis/rank-tool";
 
 export default defineNitroPlugin(() => {
     const common = {
@@ -12,7 +12,7 @@ export default defineNitroPlugin(() => {
         ...common,
         cronTime: "0 0 0/6 * * *",
         onTick: () => {
-            StockEmitter.emit("stock:list");
+            TaskEmitter.emit("crawl/stock/info/all");
         },
         runOnInit: !import.meta.dev,
     });
@@ -21,12 +21,12 @@ export default defineNitroPlugin(() => {
         // 更新股票价格
         cronTime: "0 0 8-18 * * *",
         onTick: () => {
-            StockEmitter.emit("stock:all-price");
+            TaskEmitter.emit("crawl/stock/price/all");
         },
     });
     CronJob.from({
         ...common,
-        cronTime: "0 * * * * *",
+        cronTime: "0 0 * * * *",
         onTick: async () => {
             await StockRankTool.v24h.rerank();
         },
@@ -42,7 +42,7 @@ export default defineNitroPlugin(() => {
         ...common,
         cronTime: "0 0/10 * * * *",
         onTick: () => {
-            TaskEmitter.emit("crawl:news");
+            TaskEmitter.emit("crawl/news");
         },
     });
 });
