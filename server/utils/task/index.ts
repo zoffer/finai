@@ -1,7 +1,9 @@
 import PQueue from "p-queue";
 import { EventEmitter } from "events";
 import { getStockKeywordTask } from "./keyword/stock";
-import { getNewsKeywordTask } from "./keyword/news";
+import NewsTask from "./task/news/index";
+
+const newsTask = new NewsTask();
 
 const TaskQueue = Object.freeze({
     ai: new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 }),
@@ -29,7 +31,7 @@ async function addTaskToQueue(id: string, ...args: Parameters<PQueue["add"]>) {
 
 interface MyEvents {
     "stock/ai/keyword": [number];
-    "news/ai/keyword": [number];
+    "crawl:news": [];
 }
 
 export const TaskEmitter = new EventEmitter<MyEvents>();
@@ -44,12 +46,6 @@ TaskEmitter.on("stock/ai/keyword", async (num) => {
     }
 });
 
-TaskEmitter.on("news/ai/keyword", async (num) => {
-    const tasks = await getNewsKeywordTask(num);
-    for (const [id, task] of tasks) {
-        addTaskToQueue(`news:keyword:${id}`, task, { priority: 1 });
-        if (TaskQueue.ai.size >= 100) {
-            break;
-        }
-    }
+TaskEmitter.on("crawl:news", async () => {
+    await newsTask.produce();
 });

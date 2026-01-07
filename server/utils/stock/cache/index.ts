@@ -1,5 +1,4 @@
 import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
-import { tNews } from "~~/drizzle/schema/news";
 import { sql, inArray } from "drizzle-orm";
 
 export type StockData = {
@@ -112,9 +111,5 @@ export const StockCache = {
                     updated_at: sql`NOW()`,
                 },
             });
-    },
-
-    async saveNews(data: Array<{ title: string; content: string; date: Date }>) {
-        await db.insert(tNews).values(data).onConflictDoNothing();
     },
 };

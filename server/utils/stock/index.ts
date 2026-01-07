@@ -4,7 +4,6 @@ import PQueue from "p-queue";
 interface MyEvents {
     "stock:list": [];
     "stock:all-price": [];
-    "crawl:news": [];
 }
 export const StockEmitter = new EventEmitter<MyEvents>();
 
@@ -35,12 +34,5 @@ StockEmitter.on("stock:all-price", async () => {
             console.error("更新股票实时价格失败");
             console.error(error);
         }
-    });
-});
-
-StockEmitter.on("crawl:news", async () => {
-    queue.add(async () => {
-        const res = await crawlCLSNews();
-        await StockCache.saveNews(res);
     });
 });

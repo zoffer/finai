@@ -43,7 +43,7 @@ JSON 输出格式如下：
 4. 输出必须是严格合法 JSON，不得包含解释文字。
 `;
 
-async function analyzeNews(news: { id: string; title: string; content: string }) {
+export async function analyzeNews(news: { id: string; title: string; content: string }) {
     const res = await generateText({
         model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
         messages: [
@@ -64,55 +64,4 @@ async function analyzeNews(news: { id: string; title: string; content: string })
         )
         .parse(res.output);
     return analysis;
-}
-
-async function saveAnalyze(
-    news: { id: string },
-    analysis: { keyword: string; effect: number; confidence: number; reason: string }[]
-) {
-    await db.transaction(async (tx) => {
-        const count = await tx.$count(tNews, eq(tNews.id, news.id));
-        if (count === 0) {
-            return;
-        }
-        await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id));
-        await tx.insert(tNewsEffect).values(
-            analysis.map((a) => ({
-                news_id: news.id,
-                keyword: a.keyword,
-                effect: a.effect,
-                confidence: a.confidence,
-                reason: a.reason,
-            }))
-        );
-    });
-}
-
-export async function getNewsKeywordTask(num = 10) {
-    const news = await db
-        .select({
-            id: tNews.id,
-            title: tNews.title,
-            content: tNews.content,
-            date: tNews.date,
-        })
-        .from(tNews)
-        .where(
-            and(
-                gt(tNews.date, sql`now() - interval '24 hours'`),
-                eq(db.$count(tNewsEffect, eq(tNewsEffect.news_id, tNews.id)), 0)
-            )
-        )
-        .orderBy(desc(tNews.date))
-        .limit(num);
-    const tasks = new Map<string, () => Promise<void>>();
-    for (const item of news) {
-        const fn = async () => {
-            console.log(`Analyze news: ${item.title}`);
-            const analysis = await analyzeNews(item);
-            await saveAnalyze(item, analysis);
-        };
-        tasks.set(item.id, () => PromiseTool.retry(fn, { delay: (i) => (1000 * 10) << i, retries: 2 }));
-    }
-    return tasks;
 }

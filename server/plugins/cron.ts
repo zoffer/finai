@@ -42,8 +42,7 @@ export default defineNitroPlugin(() => {
         ...common,
         cronTime: "0 0/10 * * * *",
         onTick: () => {
-            StockEmitter.emit("crawl:news");
-            TaskEmitter.emit("news/ai/keyword", 20);
+            TaskEmitter.emit("crawl:news");
         },
     });
 });

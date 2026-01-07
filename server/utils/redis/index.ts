@@ -1,6 +1,7 @@
 import { createClient } from "redis";
 
 export const rd = createClient({
+    RESP: 2,
     url: process.env.REDIS_URL,
 });
 
