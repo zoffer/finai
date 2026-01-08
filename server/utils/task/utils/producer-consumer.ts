@@ -26,7 +26,7 @@ export function useProducerConsumer<T extends Record<string, string>, ARG extend
         await Promise.all(tasks);
     };
     const consume = async (
-        readOptions: Parameters<(typeof consumer)["read"]>[0] = { COUNT: 1, BLOCK: 1000, CLAIM: 10 * 60 * 1000 }
+        readOptions: Parameters<(typeof consumer)["read"]>[0] = { COUNT: 1, BLOCK: 10 * 1000, CLAIM: 10 * 60 * 1000 }
     ) => {
         const messages = await consumer.read(readOptions);
         for await (const message of messages) {

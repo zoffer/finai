@@ -6,13 +6,20 @@ import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consume
 import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
 import { tNews } from "~~/drizzle/schema/news";
 
-export function createTaskUnit() {
+export function createNewsKeywordTaskUnit() {
     return useProducerConsumer({
         key: MESSAGE_QUEUE_KEY.NEWS_KEYWORD,
         groupName: "keyword",
         messageSchema: z.object({ id: z.string() }),
         async produce(num: number = 100) {
-            return getUnprocessed(num);
+            return db
+                .select({ id: tNews.id })
+                .from(tNews)
+                .leftJoin(tNewsEffect, eq(tNews.id, tNewsEffect.news_id))
+                .where(and(gt(tNews.date, sql`now() - interval '24 hours'`), isNull(tNewsEffect.id)))
+                .groupBy(tNews.id)
+                .orderBy(desc(tNews.date))
+                .limit(num);
         },
         async consume(item) {
             const count = await db.$count(tNewsEffect, eq(tNewsEffect.news_id, item.id));
@@ -27,42 +34,23 @@ export function createTaskUnit() {
             if (news == null) {
                 return;
             }
-            console.log(`Analyze news: ${news.title}`);
             const effects = await analyzeNews(news);
-            await saveKeywordEffect(news, effects);
+            await db.transaction(async (tx) => {
+                const count = await tx.$count(tNews, eq(tNews.id, news.id));
+                if (count === 0) {
+                    return;
+                }
+                await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id));
+                await tx.insert(tNewsEffect).values(
+                    effects.map((a) => ({
+                        news_id: news.id,
+                        keyword: a.keyword,
+                        effect: a.effect,
+                        confidence: a.confidence,
+                        reason: a.reason,
+                    }))
+                );
+            });
         },
-    });
-}
-
-async function getUnprocessed(num: number) {
-    return db
-        .select({ id: tNews.id })
-        .from(tNews)
-        .leftJoin(tNewsEffect, eq(tNews.id, tNewsEffect.news_id))
-        .where(and(gt(tNews.date, sql`now() - interval '24 hours'`), isNull(tNewsEffect.id)))
-        .groupBy(tNews.id)
-        .orderBy(desc(tNews.date))
-        .limit(num);
-}
-
-async function saveKeywordEffect(
-    news: { id: string },
-    analysis: { keyword: string; effect: number; confidence: number; reason: string }[]
-) {
-    await db.transaction(async (tx) => {
-        const count = await tx.$count(tNews, eq(tNews.id, news.id));
-        if (count === 0) {
-            return;
-        }
-        await tx.delete(tNewsEffect).where(eq(tNewsEffect.news_id, news.id));
-        await tx.insert(tNewsEffect).values(
-            analysis.map((a) => ({
-                news_id: news.id,
-                keyword: a.keyword,
-                effect: a.effect,
-                confidence: a.confidence,
-                reason: a.reason,
-            }))
-        );
     });
 }

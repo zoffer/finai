@@ -37,7 +37,7 @@ JSON 输出格式如下：
 3. confidence：
 模型对判断的置信度（数值区间[0,1]）
 
-注意：请严格仅输出标准JSON字符串，无任何其他文字、注释、说明、格式标记（如\`\`\`json），无需换行以外的多余空格。
+注意：输出格式必须是标准**JSON 数组**，无任何其他文字、注释、说明、格式标记（如"\`\`\`json"）
 `;
 
 export async function analyzeNews(news: { id: string; title: string; content: string }) {

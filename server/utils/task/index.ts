@@ -3,37 +3,16 @@ import { db } from "~~/server/utils/db";
 import { tNews } from "~~/drizzle/schema/news";
 import { crawlCLSNews } from "~~/server/utils/data-source/arktools/cls-news";
 import { EventEmitter } from "events";
-import { getStockKeywordTask } from "./keyword/stock";
-import { createTaskUnit as createNewsKeywordTaskUnit } from "./task/news/keyword";
-import { stockDbHelper } from "./task/stock/db-helper";
-import { PromiseTool } from "~~/server/utils/promise-tool";
+import { createNewsKeywordTaskUnit } from "./task/news/keyword";
+import { createStockKeywordTaskUnit } from "./task/stock/keyword";
+import { stockDbHelper } from "./task/stock/utils/db-helper";
 
 const CrawlQueue = new PQueue({ concurrency: 1, intervalCap: 5, interval: 1000 * 60 });
-
-const AIQueue = new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 });
-
-AIQueue.on("active", () => {
-    console.log(`[${new Date().toISOString()}]: Size: ${AIQueue.size}  Pending: ${AIQueue.pending}`);
-});
-
-const TaskInQueue = new Set<string>();
-
-async function addTaskToQueue(id: string, ...args: Parameters<PQueue["add"]>) {
-    if (TaskInQueue.has(id)) {
-        return;
-    }
-    try {
-        TaskInQueue.add(id);
-        await AIQueue.add(...args);
-    } catch (error) {
-        console.error(error);
-    } finally {
-        TaskInQueue.delete(id);
-    }
-}
+const ZhiPuAIQueue = new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 });
+const CFAIQueue = new PQueue({ concurrency: 2, interval: 1000, intervalCap: 1 });
 
 interface MyEvents {
-    "stock/ai/keyword": [number];
+    "stock/ai/keyword": [];
     "crawl/news": [];
     "crawl/stock/info/all": [];
     "crawl/stock/price/all": [];
@@ -69,29 +48,34 @@ TaskEmitter.on("crawl/stock/price/all", async () => {
     });
 });
 
-TaskEmitter.on("stock/ai/keyword", async (num) => {
-    const tasks = await getStockKeywordTask(num);
-    for (const [id, task] of tasks) {
-        addTaskToQueue(`stock:keyword:${id}`, task);
-        if (AIQueue.size >= 100) {
-            break;
-        }
-    }
-});
-
-const newsKeywordTaskUnit = createNewsKeywordTaskUnit();
-TaskEmitter.on("crawl/news", async () => {
-    const list = await crawlCLSNews();
-    await db.insert(tNews).values(list).onConflictDoNothing();
-    await newsKeywordTaskUnit.produce();
-});
+const stockKeywordTaskUnit = createStockKeywordTaskUnit();
 Promise.resolve().then(async () => {
     while (true) {
         try {
-            await AIQueue.onSizeLessThan(10);
-            AIQueue.add(() => newsKeywordTaskUnit.consume());
+            await ZhiPuAIQueue.onSizeLessThan(10);
+            ZhiPuAIQueue.add(() => stockKeywordTaskUnit.consume());
         } catch (error) {
             console.error(error);
         }
     }
+});
+TaskEmitter.on("stock/ai/keyword", async () => {
+    stockKeywordTaskUnit.produce(20);
+});
+
+const newsKeywordTaskUnit = createNewsKeywordTaskUnit();
+Promise.resolve().then(async () => {
+    while (true) {
+        try {
+            await CFAIQueue.onSizeLessThan(10);
+            CFAIQueue.add(() => newsKeywordTaskUnit.consume());
+        } catch (error) {
+            console.error(error);
+        }
+    }
+});
+TaskEmitter.on("crawl/news", async () => {
+    const list = await crawlCLSNews();
+    await db.insert(tNews).values(list).onConflictDoNothing();
+    await newsKeywordTaskUnit.produce();
 });
