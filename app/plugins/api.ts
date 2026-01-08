@@ -1,3 +1,4 @@
+import { AUTH_TOKEN_KEY } from "~~/shared/utils/keys";
 export default defineNuxtPlugin((nuxtApp) => {
     const api = $fetch.create({
         onRequest({ request, options, error }) {

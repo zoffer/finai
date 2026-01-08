@@ -1,7 +1,10 @@
 import PQueue from "p-queue";
+import { db } from "~~/server/utils/db";
+import { tNews } from "~~/drizzle/schema/news";
+import { crawlCLSNews } from "~~/server/utils/data-source/arktools/cls-news";
 import { EventEmitter } from "events";
 import { getStockKeywordTask } from "./keyword/stock";
-import { NewsTask } from "./task/news/index";
+import { createTaskUnit as createNewsKeywordTaskUnit } from "./task/news/keyword";
 import { stockDbHelper } from "./task/stock/db-helper";
 import { PromiseTool } from "~~/server/utils/promise-tool";
 
@@ -76,15 +79,17 @@ TaskEmitter.on("stock/ai/keyword", async (num) => {
     }
 });
 
-const newsTask = new NewsTask();
+const newsKeywordTaskUnit = createNewsKeywordTaskUnit();
 TaskEmitter.on("crawl/news", async () => {
-    await newsTask.produce();
+    const list = await crawlCLSNews();
+    await db.insert(tNews).values(list).onConflictDoNothing();
+    await newsKeywordTaskUnit.produce();
 });
 Promise.resolve().then(async () => {
     while (true) {
         try {
             await AIQueue.onSizeLessThan(10);
-            AIQueue.add(() => newsTask.consumeKeyword());
+            AIQueue.add(() => newsKeywordTaskUnit.consume());
         } catch (error) {
             console.error(error);
         }

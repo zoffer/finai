@@ -1,8 +1,5 @@
 import { z } from "zod";
-import { tNews, tNewsEffect } from "~~/drizzle/schema/news";
-import { desc, eq, and, gt, sql } from "drizzle-orm";
 import { aiProvider } from "~~/server/utils/ai/provider";
-import { PromiseTool } from "~~/server/utils/promise-tool";
 import { generateText, Output } from "ai";
 
 const SystemPrompt = `你是专业的财经新闻分析模型，任务是从新闻中生成关键词以及对股票未来行情进行预测。
@@ -40,18 +37,18 @@ JSON 输出格式如下：
 3. confidence：
 模型对判断的置信度（数值区间[0,1]）
 
-4. 输出必须是严格合法 JSON，不得包含解释文字。
+注意：请严格仅输出标准JSON字符串，无任何其他文字、注释、说明、格式标记（如\`\`\`json），无需换行以外的多余空格。
 `;
 
 export async function analyzeNews(news: { id: string; title: string; content: string }) {
     const res = await generateText({
-        model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
+        model: aiProvider.cloudflare.chatModel("workers-ai/@cf/qwen/qwen3-30b-a3b-fp8"),
         messages: [
             { role: "system", content: SystemPrompt },
             { role: "user", content: news.content },
         ],
         output: Output.json(),
-        maxRetries: 0,
+        temperature: 0.2,
     });
     const analysis = await z
         .array(
