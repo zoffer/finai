@@ -3,7 +3,7 @@ import PQueue from "p-queue";
 
 type CHAT_MODEL_IDS = "glm-4.5-flash";
 
-const queue = new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 });
+const queue = new PQueue({ concurrency: 2, interval: 1000 * 30, intervalCap: 1 });
 
 export default createOpenAICompatible<CHAT_MODEL_IDS, never, never, never>({
     name: "bigmodel.cn",

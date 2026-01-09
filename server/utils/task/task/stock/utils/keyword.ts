@@ -1,7 +1,5 @@
 import { z } from "zod";
 import { crawlXQStockInfo } from "~~/server/utils/data-source/arktools/info-xq";
-import { tStockKeyword, tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
-import { sql, and, eq, max, or, lt, isNull } from "drizzle-orm";
 import { aiProvider } from "~~/server/utils/ai/provider";
 import { generateText, Output } from "ai";
 
@@ -54,7 +52,7 @@ export async function generateStockKeywords(stock: { symbol: string; exchange: s
         temperature: 0,
     });
 
-    return await z
+    return z
         .array(
             z.object({
                 keyword: z.string(),

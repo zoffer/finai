@@ -22,7 +22,7 @@ services:
       TZ: Asia/Shanghai
   postgres:
     <<: *bs
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18
     container_name: finai-postgres
     pull_policy: always
     restart: always

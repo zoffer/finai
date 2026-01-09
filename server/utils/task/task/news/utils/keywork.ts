@@ -50,7 +50,7 @@ export async function analyzeNews(news: { id: string; title: string; content: st
         output: Output.json(),
         temperature: 0.2,
     });
-    const analysis = await z
+    return z
         .array(
             z.object({
                 keyword: z.string(),
@@ -60,5 +60,4 @@ export async function analyzeNews(news: { id: string; title: string; content: st
             })
         )
         .parse(res.output);
-    return analysis;
 }
