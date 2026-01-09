@@ -79,6 +79,8 @@ services:
       REDIS_URL: "redis://redis:6379"
       AKTOOLS_URL: "http://aktools:8080"
       ZAI_API_KEY: ${ZAI_API_KEY}
+      CF_ACCOUNT_ID: ${CF_ACCOUNT_ID}
+      CF_WORKERS_AI_API_KEY: ${CF_WORKERS_AI_API_KEY}
     depends_on:
       postgres:
         condition: service_started

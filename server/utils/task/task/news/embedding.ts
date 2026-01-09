@@ -1,7 +1,7 @@
 import z from "zod";
 import { tNews } from "~~/drizzle/schema/news";
 import { tNewsEmbeddingCloudflareQwen3Embedding06b as tNewsEmbedding } from "~~/drizzle/schema/news_embedding";
-import { eq, and, gt, isNull, desc, sql } from "drizzle-orm";
+import { eq, isNull, desc, sql } from "drizzle-orm";
 import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consumer";
 import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
 import { embed } from "ai";
@@ -36,7 +36,6 @@ export function createNewsEmbeddingTaskUnit() {
             if (news == null) {
                 return;
             }
-            console.log(`embed news: ${news.title}`);
             const embedding = await embedNewsContent(news.content);
             const { norm, vector } = L2Normalize(embedding);
             await db.transaction(async (tx) => {
@@ -65,10 +64,9 @@ export function createNewsEmbeddingTaskUnit() {
 }
 
 async function embedNewsContent(content: string) {
-    const { embedding, usage } = await embed({
+    const { embedding } = await embed({
         model: embeddingModel,
         value: content,
     });
-    console.log(usage);
     return embedding;
 }

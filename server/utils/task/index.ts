@@ -60,5 +60,5 @@ newsEmbeddingTaskUnit.loop.start();
 TaskEmitter.on("crawl/news", async () => {
     const list = await crawlCLSNews();
     await db.insert(tNews).values(list).onConflictDoNothing();
-    await Promise.all([newsKeywordTaskUnit.produce(20), newsEmbeddingTaskUnit.produce(20)]);
+    await Promise.all([newsKeywordTaskUnit.produce(20), newsEmbeddingTaskUnit.produce(100)]);
 });
