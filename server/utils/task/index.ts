@@ -5,6 +5,7 @@ import { crawlCLSNews } from "~~/server/utils/data-source/arktools/cls-news";
 import { EventEmitter } from "events";
 import { createNewsKeywordTaskUnit } from "./task/news/keyword";
 import { createStockKeywordTaskUnit } from "./task/stock/keyword";
+import { createNewsEmbeddingTaskUnit } from "./task/news/embedding";
 import { stockDbHelper } from "./task/stock/utils/db-helper";
 
 const CrawlQueue = new PQueue({ concurrency: 1, intervalCap: 5, interval: 1000 * 60 });
@@ -47,31 +48,17 @@ TaskEmitter.on("crawl/stock/price/all", async () => {
 });
 
 const stockKeywordTaskUnit = createStockKeywordTaskUnit();
-Promise.resolve().then(async () => {
-    while (true) {
-        try {
-            await stockKeywordTaskUnit.consume();
-        } catch (error) {
-            console.error(error);
-        }
-    }
-});
+stockKeywordTaskUnit.loop.start();
 TaskEmitter.on("stock/ai/keyword", async () => {
     stockKeywordTaskUnit.produce(20);
 });
 
 const newsKeywordTaskUnit = createNewsKeywordTaskUnit();
-Promise.resolve().then(async () => {
-    while (true) {
-        try {
-            await newsKeywordTaskUnit.consume();
-        } catch (error) {
-            console.error(error);
-        }
-    }
-});
+const newsEmbeddingTaskUnit = createNewsEmbeddingTaskUnit();
+newsKeywordTaskUnit.loop.start();
+newsEmbeddingTaskUnit.loop.start();
 TaskEmitter.on("crawl/news", async () => {
     const list = await crawlCLSNews();
     await db.insert(tNews).values(list).onConflictDoNothing();
-    await newsKeywordTaskUnit.produce();
+    await Promise.all([newsKeywordTaskUnit.produce(20), newsEmbeddingTaskUnit.produce(20)]);
 });

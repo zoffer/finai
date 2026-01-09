@@ -22,7 +22,10 @@ export function useProducerConsumer<T extends Record<string, string>, ARG extend
             return Promise.reject(new Error("queue is full"));
         }
         const items = await options.produce(...arg);
-        const tasks = items.map((item) => mq.add(item));
+        const tasks = z
+            .array(options.messageSchema)
+            .parse(items)
+            .map((item) => mq.add(item));
         await Promise.all(tasks);
     };
     const consume = async (
@@ -41,5 +44,29 @@ export function useProducerConsumer<T extends Record<string, string>, ARG extend
             await group.ackdel(message.id);
         }
     };
-    return { produce, consume };
+    return { produce, consume, loop: createLoop(consume) };
+}
+
+function createLoop(func: () => Promise<void>) {
+    let isRunning = false;
+    return {
+        start() {
+            if (isRunning) {
+                return;
+            }
+            isRunning = true;
+            Promise.resolve().then(async () => {
+                while (isRunning) {
+                    try {
+                        await func();
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            });
+        },
+        stop() {
+            isRunning = false;
+        },
+    };
 }
