@@ -42,7 +42,7 @@ JSON 输出格式如下：
 
 export async function analyzeNews(news: { id: string; title: string; content: string }) {
     const res = await generateText({
-        model: aiProvider.cloudflare.chatModel("workers-ai/@cf/qwen/qwen3-30b-a3b-fp8"),
+        model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
         messages: [
             { role: "system", content: SystemPrompt },
             { role: "user", content: news.content },

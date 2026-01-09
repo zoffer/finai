@@ -1,11 +1,17 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import PQueue from "p-queue";
 
-type CHAT_MODEL_IDS = "glm-4.6" | "glm-4.5" | "glm-4.5-air" | "glm-4.5-x" | "glm-4.5-airx" | "glm-4.5-flash" | "glm-4-plus" | "glm-4-airx" | "glm-4-flashx"
+type CHAT_MODEL_IDS = "glm-4.5-flash";
+
+const queue = new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 });
 
 export default createOpenAICompatible<CHAT_MODEL_IDS, never, never, never>({
-    name: 'bigmodel.cn',
+    name: "bigmodel.cn",
     apiKey: process.env.ZAI_API_KEY,
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
+    baseURL: "https://open.bigmodel.cn/api/paas/v4/",
     includeUsage: true, // Include usage information in streaming responses
     supportsStructuredOutputs: true,
+    fetch: (...args) => {
+        return queue.add(() => fetch(...args));
+    },
 });

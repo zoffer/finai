@@ -34,7 +34,6 @@ export default defineNitroPlugin(() => {
     CronJob.from({
         ...common,
         cronTime: "0 5/10 * * * *",
-        runOnInit: import.meta.dev,
         onTick: () => {
             TaskEmitter.emit("stock/ai/keyword");
         },

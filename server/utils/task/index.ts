@@ -8,8 +8,6 @@ import { createStockKeywordTaskUnit } from "./task/stock/keyword";
 import { stockDbHelper } from "./task/stock/utils/db-helper";
 
 const CrawlQueue = new PQueue({ concurrency: 1, intervalCap: 5, interval: 1000 * 60 });
-const ZhiPuAIQueue = new PQueue({ concurrency: 1, interval: 1000 * 30, intervalCap: 1 });
-const CFAIQueue = new PQueue({ concurrency: 2, interval: 1000, intervalCap: 1 });
 
 interface MyEvents {
     "stock/ai/keyword": [];
@@ -52,8 +50,7 @@ const stockKeywordTaskUnit = createStockKeywordTaskUnit();
 Promise.resolve().then(async () => {
     while (true) {
         try {
-            await ZhiPuAIQueue.onSizeLessThan(10);
-            ZhiPuAIQueue.add(() => stockKeywordTaskUnit.consume());
+            await stockKeywordTaskUnit.consume();
         } catch (error) {
             console.error(error);
         }
@@ -67,8 +64,7 @@ const newsKeywordTaskUnit = createNewsKeywordTaskUnit();
 Promise.resolve().then(async () => {
     while (true) {
         try {
-            await CFAIQueue.onSizeLessThan(10);
-            CFAIQueue.add(() => newsKeywordTaskUnit.consume());
+            await newsKeywordTaskUnit.consume();
         } catch (error) {
             console.error(error);
         }

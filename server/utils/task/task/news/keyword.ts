@@ -34,6 +34,7 @@ export function createNewsKeywordTaskUnit() {
             if (news == null) {
                 return;
             }
+            console.log(`analyze news: ${news.title}`);
             const effects = await analyzeNews(news);
             await db.transaction(async (tx) => {
                 const count = await tx.$count(tNews, eq(tNews.id, news.id));
