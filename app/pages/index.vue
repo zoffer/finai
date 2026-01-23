@@ -95,7 +95,7 @@ const refreshStockData = (silence = false) => {
 
 // 跳转到详情页面
 const goToDetail = (stock: { id: string }) => {
-  navigateTo(`/stock/${stock.id}`)
+  navigateTo({ path: `/stock/view/${stock.id}`, })
 }
 
 </script>

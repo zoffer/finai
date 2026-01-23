@@ -1,12 +1,21 @@
 import { RedisMessageQueue, RedisMessageQueueGroup, RedisMessageQueueConsumer } from "~~/server/utils/redis/message-queue";
 import z from "zod";
 
+type RedisMessage = {
+    id: string;
+    message: {
+        [x: string]: string;
+    };
+    millisElapsedFromDelivery?: number | undefined;
+    deliveriesCounter?: number | undefined;
+};
+
 type Options<T extends Record<string, string>, ARG extends any[]> = {
     key: string;
     groupName: string;
     messageSchema: z.Schema<T>;
     produce: (...arg: ARG) => Promise<T[]>;
-    consume: (item: T) => Promise<void>;
+    consume: (item: T, raw: RedisMessage) => Promise<void>;
     consumerName?: string;
     maxQueueLength?: number;
 };
@@ -40,7 +49,7 @@ export function useProducerConsumer<T extends Record<string, string>, ARG extend
                 return;
             }
             const item = parseResult.data;
-            await options.consume(item);
+            await options.consume(item, message);
             await group.ackdel(message.id);
         }
     };

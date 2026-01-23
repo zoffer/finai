@@ -5,6 +5,10 @@ import { eq, and, gt, isNull, desc, sql } from "drizzle-orm";
 import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consumer";
 import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
 import { tNews } from "~~/drizzle/schema/news";
+import { rd } from "~~/server/utils/redis/index";
+
+const MAX_TRY = 16;
+const RECORD_KEY = "news:keyword:deliver:record:H";
 
 export function createNewsKeywordTaskUnit() {
     return useProducerConsumer({
@@ -22,6 +26,14 @@ export function createNewsKeywordTaskUnit() {
                 .limit(num);
         },
         async consume(item) {
+            const [numberOfRuns] = await rd
+                .MULTI()
+                .HINCRBY(RECORD_KEY, item.id, 1)
+                .HEXPIRE(RECORD_KEY, item.id, 24 * 60 * 60, "NX")
+                .EXEC<"typed">();
+            if (numberOfRuns > MAX_TRY) {
+                return;
+            }
             const count = await db.$count(tNewsEffect, eq(tNewsEffect.news_id, item.id));
             if (count > 0) {
                 return;
@@ -52,6 +64,7 @@ export function createNewsKeywordTaskUnit() {
                     }))
                 );
             });
+            rd.HDEL(RECORD_KEY, item.id);
         },
     });
 }
