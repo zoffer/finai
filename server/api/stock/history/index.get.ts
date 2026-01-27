@@ -5,6 +5,7 @@ import { tStock } from "~~/drizzle/schema/stock";
 import z from "zod";
 import { crawlStockHistory } from "~~/server/utils/data-source/arktools/hist";
 import { rd } from "~~/server/utils/redis";
+import { REDIS_KEYS } from "~~/server/utils/redis/keys";
 
 const zParameter = z.object({
     id: z.string().trim(),
@@ -30,16 +31,6 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
     // 获取股票代码参数
     const query = await apiParameterParse(zParameter, getQuery(event));
 
-    // 从缓存中获取数据
-    try {
-        const cachedData = await getData(query.id);
-        if (cachedData) {
-            return { data: cachedData };
-        }
-    } catch (error) {
-        console.error("获取缓存数据错误", error);
-    }
-
     const [stock] = await db
         .select({
             id: tStock.id,
@@ -56,24 +47,35 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
             message: "未找到指定股票",
         }).setHttpStatus(HTTP_STATUS.NOT_FOUND);
     }
+    const data = await getHistory(stock);
+
+    return { data };
+});
+
+const CACHE_KEY = REDIS_KEYS.stock.historyCache;
+
+async function getHistory(stock: { id: string; symbol: string }) {
+    try {
+        const cachedData = await getData(stock.id);
+        if (cachedData) {
+            return cachedData;
+        }
+    } catch (error) {
+        console.error("获取缓存数据错误", error);
+    }
     const res = await crawlStockHistory({
         symbol: stock.symbol,
         period: "daily",
         adjust: "qfq",
         start_date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
     });
-
     const data = res.map((item) => ({
         time: item.date.slice(0, 10),
         ...item,
     }));
-
-    cacheData(query.id, data);
-
-    return { data };
-});
-
-const CACHE_KEY = "stock:history:cache:H";
+    cacheData(stock.id, data);
+    return data;
+}
 
 async function getData(id: string) {
     const cachedData = await rd.HGET(CACHE_KEY, id);

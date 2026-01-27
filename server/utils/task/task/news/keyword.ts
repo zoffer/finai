@@ -3,12 +3,12 @@ import { analyzeNews } from "./utils/keywork";
 import { tNewsEffect } from "~~/drizzle/schema/news";
 import { eq, and, gt, isNull, desc, sql } from "drizzle-orm";
 import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consumer";
-import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
 import { tNews } from "~~/drizzle/schema/news";
 import { rd } from "~~/server/utils/redis/index";
+import { REDIS_KEYS, MESSAGE_QUEUE_KEY } from "~~/server/utils/redis/keys";
 
 const MAX_TRY = 16;
-const RECORD_KEY = "news:keyword:deliver:record:H";
+const RECORD_KEY = REDIS_KEYS.news.keywordDeliverRecord;
 
 export function createNewsKeywordTaskUnit() {
     return useProducerConsumer({

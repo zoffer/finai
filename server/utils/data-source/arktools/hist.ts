@@ -1,7 +1,4 @@
 const NUXT_AKTOOLS_URL = process.env.AKTOOLS_URL;
-import PQueue from "p-queue";
-
-const queue = new PQueue({ concurrency: 1, intervalCap: 1, interval: 1000 });
 
 type Data = {
     日期: string; //"2025-12-17T00:00:00.000",
@@ -39,7 +36,7 @@ export async function crawlStockHistory(q: {
     if (q.adjust) {
         query.adjust = q.adjust;
     }
-    const res = await queue.add(() => $fetch<Array<Data>>(`${NUXT_AKTOOLS_URL}/api/public/stock_zh_a_hist`, { query }));
+    const res = await $fetch<Array<Data>>(`${NUXT_AKTOOLS_URL}/api/public/stock_zh_a_hist`, { query });
     return res.map((item) => ({
         date: item.日期,
         open: item.开盘,

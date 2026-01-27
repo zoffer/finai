@@ -2,7 +2,7 @@ import z from "zod";
 import { generateStockKeywords } from "./utils/keyword";
 import { eq, and, gt, sql, max } from "drizzle-orm";
 import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consumer";
-import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
+import { MESSAGE_QUEUE_KEY } from "~~/server/utils/redis/keys";
 import { tStock, tStockKeyword, tStockDynamicData } from "~~/drizzle/schema/stock";
 
 const updateTimeCondition = gt(tStockKeyword.updated_at, sql`NOW() - INTERVAL '60 days'`);

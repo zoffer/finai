@@ -3,7 +3,7 @@ import { tNews } from "~~/drizzle/schema/news";
 import { tNewsEmbeddingCloudflareQwen3Embedding06b as tNewsEmbedding } from "~~/drizzle/schema/news_embedding";
 import { eq, isNull, desc, sql } from "drizzle-orm";
 import { useProducerConsumer } from "~~/server/utils/task/utils/producer-consumer";
-import { MESSAGE_QUEUE_KEY } from "~~/server/utils/task/utils/keys";
+import { MESSAGE_QUEUE_KEY } from "~~/server/utils/redis/keys";
 import { embed } from "ai";
 import { aiProvider } from "~~/server/utils/ai/provider";
 
