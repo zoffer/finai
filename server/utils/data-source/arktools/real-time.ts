@@ -22,7 +22,7 @@ const AKTOOLS_URL = process.env.AKTOOLS_URL;
  * @returns {Date} 对应北京时间的 Date 对象
  */
 function buildBeijingDateUTC(baseDate: Date, timeStr: string): Date {
-    const [h, m, s] = timeStr.split(":").map(Number);
+    const [h, m, s] = timeStr.split(":").map(Number) as [number, number, number];
     // 创建一个新的 Date
     const result = new Date(baseDate);
     // 设置为北京时间：UTC = 北京时间 - 8

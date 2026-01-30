@@ -64,9 +64,11 @@ export class RedisMessageQueueConsumer<T extends Record<string, string>> {
         }
         // https://redis.io/docs/latest/commands/xreadgroup/
         const res = await this.client.XREADGROUP(this.group.name, this.name, { key: this.stream.key, id: ">" }, options);
-        if (res == null) {
-            return [];
+        if (res != null) {
+            for (const item of res) {
+                return item.messages;
+            }
         }
-        return res[0].messages;
+        return [];
     }
 }

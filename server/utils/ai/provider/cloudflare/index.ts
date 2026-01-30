@@ -1,7 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import PQueue from "p-queue";
 
-const queue = new PQueue({ concurrency: 2 });
+const queue = new PQueue({ concurrency: 5 });
 
 type CHAT_MODEL_IDS = "workers-ai/@cf/qwen/qwen3-30b-a3b-fp8";
 type EMBEDDING_MODEL_IDS = "workers-ai/@cf/qwen/qwen3-embedding-0.6b";

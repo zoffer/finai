@@ -2,7 +2,6 @@
 import { eq, sql, desc } from "drizzle-orm";
 import type { H3Event } from "h3";
 import { tStock, tStockDynamicData, tStockKeyword } from "~~/drizzle/schema/stock";
-import { StockRankTool } from "~~/server/utils/redis/rank-tool";
 import z from "zod";
 
 const zParameter = z.object({
@@ -47,18 +46,18 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
                 .select({
                     keywords:
                         sql`json_agg(json_build_object('keyword', ${tStockKeyword.keyword}, 'weight', ${tStockKeyword.weight}))`.as(
-                            "keywords"
+                            "keywords",
                         ),
                 })
                 .from(tStockKeyword)
                 .where(eq(tStockKeyword.stock_id, tStock.id))
                 .as("kw"),
-            sql`true`
+            sql`true`,
         )
         .where(eq(tStock.id, query.id))
         .limit(1);
 
-    if (!stockData || stockData.length === 0) {
+    if (stockData == null || stockData.length === 0 || stockData[0] == null) {
         return new ApiError({
             code: "STOCK_NOT_FOUND",
             message: "未找到指定股票",
@@ -67,11 +66,7 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
 
     // 处理查询结果
     const stock = stockData[0];
-
-    stock.keywords = stock.keywords.sort((a, b) => b.weight - a.weight);
-
-    // 增加1天内的股票排名
-    StockRankTool.v24h.incr(stock.id);
+    stock.keywords.sort((a, b) => b.weight - a.weight);
 
     return {
         data: stock,
