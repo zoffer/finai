@@ -49,10 +49,10 @@ const route = useRoute()
 const stockId = computed(() => route.params.id as string)
 
 // 使用useAsyncData获取股票详情
-const { data: stock, pending: isLoading, error, refresh } = useAsyncData(`stock-${stockId.value}`, async () => {
-  const { $api } = useNuxtApp()
+const { data: stock, pending: isLoading, error, refresh } = useAsyncData(`stock-${stockId.value}`, async ({ $api }, { signal }) => {
   const res = await $api("/api/stock/info", {
-    query: { id: stockId.value }
+    query: { id: stockId.value },
+    signal
   })
   return res.data
 })
@@ -63,14 +63,6 @@ const { data: history } = useAsyncData(`history-${stockId.value}`, async ({ $api
     signal
   })
   return res.data
-})
-
-const { data: newsStatistics } = useAsyncData(async ({ $api }, { signal }) => {
-  const res = await $api("/api/stock/news/history", {
-    query: { stock_id: stockId.value },
-    signal
-  })
-  return res.data.map(item => ({ time: item.date, value: item.avg_effect }))
 })
 
 </script>
