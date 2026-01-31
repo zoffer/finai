@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { createChart, CandlestickSeries, BaselineSeries, LineStyle } from 'lightweight-charts'
+import { createChart, CandlestickSeries } from 'lightweight-charts'
 import type { IChartApi, CandlestickData } from 'lightweight-charts'
 import { TooltipPrimitive } from './plugins/tooltip'
 
