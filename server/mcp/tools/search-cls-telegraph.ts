@@ -4,6 +4,7 @@ import { tNews } from "~~/drizzle/schema/news";
 import { tNewsEmbeddingCloudflareQwen3Embedding06b as tNewsEmbedding } from "~~/drizzle/schema/news_embedding";
 import { embed } from "ai";
 import { aiProvider } from "~~/server/utils/ai/provider";
+import { L2Normalize } from "~~/server/utils/vector";
 
 const escapeMarkdownTable = (text: string): string => {
     return text.replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/\r/g, " ");
@@ -31,7 +32,7 @@ export default defineMcpTool({
             model: aiProvider.cloudflare.embeddingModel("workers-ai/@cf/qwen/qwen3-embedding-0.6b"),
             value: q,
         });
-        const vector = res.embedding;
+        const { vector } = L2Normalize(res.embedding);
 
         const list = await db
             .select({
