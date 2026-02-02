@@ -7,13 +7,14 @@
 - **框架**: Nuxt.js 4 (Vue 3 + TypeScript)
 - **数据库**: PostgreSQL + Drizzle ORM
 - **缓存**: Redis
-- **样式**: TailwindCSS + Sass
+- **样式**: TailwindCSS
 - **测试**: Vitest
 - **定时任务**: cron
 
 ## 核心命令
 
 ### 开发
+
 ```bash
 npm run dev                    # 启动开发服务器（使用 .env.dev）
 npm run build                  # 构建生产版本
@@ -23,6 +24,7 @@ npm run preview                # 预览生产构建
 ```
 
 ### 测试
+
 ```bash
 npx vitest                     # 运行所有测试
 npx vitest run                 # 单次运行所有测试
@@ -33,6 +35,7 @@ npx vitest run <文件路径>      # 运行单个测试文件
 ```
 
 ### 数据库
+
 ```bash
 npm run db:push:dev            # 推送 schema 变更到开发数据库
 npm run db:generate            # 生成迁移文件
@@ -41,6 +44,7 @@ npm run db:generate            # 生成迁移文件
 ## 代码风格
 
 ### 格式化
+
 - **缩进**: 4 空格（.editorconfig）
 - **字符编码**: UTF-8
 - **行长度**: 最大 128 字符
@@ -50,42 +54,49 @@ npm run db:generate            # 生成迁移文件
 ### 命名约定
 
 **数据库表 (drizzle/schema)**
+
 - 导出常量使用驼峰命名：`tStock`, `tNews`, `tStockDynamicData`
 - 主键字段：`id` (text 或 uuid)
 - 时间戳：`created_at`, `updated_at`（通过 `sqlTimestamps` 扩展）
 
 **API 路由 (server/api)**
+
 - 文件结构：`server/api/<路径>/<文件名>.<方法>.ts`
 - 例如：`server/api/stock/list/hot.get.ts`
 - 使用 `defineApiEventHandler` 包装处理程序
 - 使用 Zod schema 验证查询参数
 
 **组件**
+
 - 文件名：kebab-case，如 `stock-table.vue`, `news-list.vue`
 - 使用 `<script lang="ts" setup>` 语法
 - Props 使用 TypeScript 接口或类型定义
 
 **函数和变量**
+
 - 驼峰命名：`formatLargeNumber`, `refreshStockData`
 - 常量：驼峰命名，全大写表示枚举：`HTTP_STATUS`, `AUTH_TOKEN_KEY`
 
 **类型定义**
+
 - 使用 TypeScript 接口或类型别名
 - 复杂类型使用 `type` 关键字定义
 
 ### 导入规范
 
 **使用别名**
+
 ```typescript
 // 前端组件
-import { formatLargeNumber } from '@/utils/format/number'
+import { formatLargeNumber } from "@/utils/format/number";
 
 // 服务端代码
-import { tStock } from '~~/drizzle/schema/stock'
-import { ApiError, HTTP_STATUS } from '~~/server/utils/api'
+import { tStock } from "~~/drizzle/schema/stock";
+import { ApiError, HTTP_STATUS } from "~~/server/utils/api";
 ```
 
 **导入顺序**
+
 1. 第三方库
 2. 内部模块（使用 `~~/` 别名）
 3. 相对路径导入
@@ -94,11 +105,13 @@ import { ApiError, HTTP_STATUS } from '~~/server/utils/api'
 ### TypeScript
 
 **严格模式**
+
 - 所有文件必须使用 TypeScript
 - 函数参数和返回值必须有明确类型
 - 避免使用 `any`，使用 `unknown` 或具体类型
 
 **类型定义示例**
+
 ```typescript
 // Zod schema 用于验证
 const zParameter = z.object({
@@ -121,6 +134,7 @@ defineApiEventHandler(async (event: H3Event<{ query: z.input<typeof zParameter> 
 ### 错误处理
 
 **API 错误**
+
 - 使用 `ApiError` 类统一处理错误
 - 抛出 `ApiError` 而非普通异常
 - 使用 `defineApiEventHandler` 自动包装错误处理
@@ -134,15 +148,17 @@ return new ApiError({
 ```
 
 **客户端错误**
+
 - 401 错误自动重定向到登录页面（在 app/plugins/api.ts 中）
 - 其他错误记录到控制台
 
 ### 数据库操作
 
 **使用 Drizzle ORM**
+
 ```typescript
 // 导入表定义
-import { tStock, tStockDynamicData } from '~~/drizzle/schema/stock';
+import { tStock, tStockDynamicData } from "~~/drizzle/schema/stock";
 
 // 查询示例
 const stocks = await db
@@ -153,40 +169,42 @@ const stocks = await db
     .limit(10);
 
 // 操作符导入
-import { eq, desc, ilike, and, or, sql, gt } from 'drizzle-orm';
+import { eq, desc, ilike, and, or, sql, gt } from "drizzle-orm";
 ```
 
 ### Vue 组件规范
 
 **Composition API**
+
 ```vue
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 
 // 响应式状态
-const searchQuery = ref('')
+const searchQuery = ref("");
 
 // 计算属性
-const stocks = computed(() => props.data || [])
+const stocks = computed(() => props.data || []);
 
 // 类型定义
 type Stock = {
     id: string;
     name: string;
     // ...
-}
+};
 
 const props = defineProps<{
-    data?: Stock[]
-}>()
+    data?: Stock[];
+}>();
 
 const emit = defineEmits<{
-    (e: 'item-click', stock: Stock): void
-}>()
+    (e: "item-click", stock: Stock): void;
+}>();
 </script>
 ```
 
 **模板样式**
+
 - 使用 TailwindCSS 类名
 - 响应式设计：移动优先，使用 `sm:`, `md:`, `lg:` 前缀
 - 动态类使用对象语法或条件表达式
@@ -227,15 +245,16 @@ test/                         # 测试文件
 
 ## MCP 工具使用
 
-在使用涉及文档查询、API 参考或代码示例的 MCP 工具（如 Context7）时，应遵循以下原则：
+在编码过程中，特别是涉及 Nuxt 相关功能或新建文件时，必须积极使用 nuxt mcp 工具查询官方文档，以确保代码符合 Nuxt 规范。
 
 ### 使用原则
 
-1. **主动使用**：遇到需要查询技术文档、代码示例或最佳实践时，优先使用 MCP 工具获取最新、准确的信息
-2. **智能选择**：根据数据源评分、代码片段数量和相关性选择最佳的资源
-3. **验证信息**：将 MCP 返回的信息与项目实际需求结合，而非盲目复制
+1. **强制使用**：在新建文件、实现 Nuxt 相关功能或不确定最佳实践时，必须使用 nuxt mcp 查询官方文档
+2. **主动使用**：遇到需要查询技术文档、API 参考或代码示例时，优先使用 MCP 工具获取最新、准确的信息
+3. **智能选择**：根据数据源评分、代码片段数量和相关性选择最佳的资源
 4. **版本匹配**：注意库和框架的版本兼容性，确保查询的文档与项目使用的版本匹配
 5. **持续验证**：在实现关键功能前，通过实际测试验证 MCP 提供的信息
+6. **规范遵循**：严格按照官方文档的规范编写代码，确保符合 Nuxt 最佳实践
 
 ## 最佳实践
 
