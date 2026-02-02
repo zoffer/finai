@@ -15,5 +15,9 @@ export default defineNuxtConfig({
         entryImportMap: false,
     },
 
-    modules: ["@nuxtjs/tailwindcss", "@nuxt/test-utils/module"],
+    modules: ["@nuxtjs/tailwindcss", "@nuxtjs/mcp-toolkit", "@nuxt/test-utils/module"],
+    mcp: {
+        name: "FinAI MCP Server",
+        route: "/mcp",
+    },
 });
