@@ -12,7 +12,7 @@ useSeoMeta({
 });
 </script>
 
-<style lang="scss">
+<style>
 ul {
     list-style: disc;
 }
