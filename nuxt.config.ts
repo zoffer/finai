@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from "@tailwindcss/vite";
+
 export default defineNuxtConfig({
     compatibilityDate: "2025-07-15",
     devtools: { enabled: true },
@@ -7,15 +9,20 @@ export default defineNuxtConfig({
         scan: false, // https://nuxt.com/docs/4.x/api/nuxt-config#scan
     },
 
+    css: ["./app/assets/global/css/main.css"],
+
     // https://nuxt.com/docs/4.x/api/nuxt-config#runtimeconfig-1
-    vite: { build: { target: "es2015" } },
+    vite: {
+        build: { target: "es2015" },
+        plugins: [tailwindcss()],
+    },
 
     experimental: {
         // https://nuxt.com/docs/4.x/guide/going-further/experimental-features#entryimportmap
         entryImportMap: false,
     },
 
-    modules: ["@nuxtjs/tailwindcss", "@nuxtjs/mcp-toolkit", "@nuxt/test-utils/module"],
+    modules: ["@nuxtjs/mcp-toolkit", "@nuxt/test-utils/module"],
     mcp: {
         name: "FinAI MCP Server",
         route: "/mcp",
