@@ -7,7 +7,7 @@
 - **框架**: Nuxt.js 4 (Vue 3 + TypeScript)
 - **数据库**: PostgreSQL + Drizzle ORM
 - **缓存**: Redis
-- **样式**: TailwindCSS
+- **样式**: TailwindCSS v4
 - **测试**: Vitest
 - **定时任务**: cron
 

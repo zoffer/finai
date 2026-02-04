@@ -11,14 +11,3 @@ useSeoMeta({
     description: "finance ai",
 });
 </script>
-
-<style>
-ul {
-    list-style: disc;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-}
-</style>
