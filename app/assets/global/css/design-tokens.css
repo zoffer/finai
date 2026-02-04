@@ -70,3 +70,32 @@
 
     --color-shadow: var(--color-shadow);
 }
+
+/*
+
+Tailwind CSS 自定义颜色使用说明
+
+1. CSS 变量命名规范：
+   - 所有自定义颜色必须使用 --color-* 前缀
+   - 例如：--color-text, --color-bg, --color-primary
+
+2. @theme 配置说明：
+   - @theme inline 块将 CSS 变量注册为 Tailwind 颜色系统
+   - 使用 var(--color-*) 引用 :root 中定义的变量
+
+3. Tailwind 类名使用规则（重要）：
+   - 使用简写形式，Tailwind 会自动处理颜色变量的引用
+   - ✅ 正确：text-text, bg-bg, border-border, focus:border-primary
+   - ❌ 错误：text-color-text, bg-color-bg, border-color-border
+
+4. 完整示例：
+   CSS 变量定义：--color-primary: #7c3aed
+   Tailwind 类名：bg-primary, text-primary, border-primary, ring-primary, etc.
+
+5. 深色模式支持：
+   - 使用 @media (prefers-color-scheme: dark) 定义深色主题颜色
+   - 无需手动添加 dark: 前缀，Tailwind 会自动响应系统主题
+
+6. 参考：https://tailwindcss.com/docs/colors#customizing-your-colors
+
+*/

@@ -3,61 +3,83 @@
 </template>
 
 <script setup lang="ts">
-import { createChart, CandlestickSeries } from 'lightweight-charts'
-import type { IChartApi, CandlestickData } from 'lightweight-charts'
-import { TooltipPrimitive } from './plugins/tooltip'
+import { createChart, CandlestickSeries } from "lightweight-charts";
+import type { IChartApi, CandlestickData, TimeChartOptions, CandlestickStyleOptions, SeriesOptionsCommon, DeepPartial } from "lightweight-charts";
+import { useMediaQuery } from '@vueuse/core'
+import { TooltipPrimitive } from "./plugins/tooltip";
 
 const props = defineProps<{
-    data?: CandlestickData[]
-}>()
+    data?: CandlestickData[];
+}>();
 
-const chartContainer = ref<HTMLDivElement>()
+const chartContainer = ref<HTMLDivElement>();
 
-let chart: IChartApi | null = null
+const isPreferredDark = useMediaQuery('(prefers-color-scheme: dark)')
 
 onMounted(() => {
-    const upColor = '#ef4444'
-    const downColor = '#22c55e'
-    chart = createChart(chartContainer.value as HTMLElement, {
-        autoSize: true,
-        timeScale: {
-            fixLeftEdge: true,
-            fixRightEdge: true,
-            borderVisible: false,
-            rightOffset: 8,
-        },
-        layout: {
-            attributionLogo: false,
-        },
-    })
+    // https://tradingview.github.io/lightweight-charts/docs
+    const getProperties = () => {
+        const style = getComputedStyle(chartContainer.value as Element);
+        return {
+            upColor: style.getPropertyValue('--color-up') || "red",
+            downColor: style.getPropertyValue('--color-down') || "green",
+            textColor: style.getPropertyValue('--color-text') || "gray"
+        };
+    }
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-        downColor, upColor, borderVisible: false,
-        wickUpColor: upColor, wickDownColor: downColor,
+    const cssProperties = getProperties();
+    const getOptions = (p: { textColor: string }): DeepPartial<TimeChartOptions> => {
+        return {
+            autoSize: true,
+            timeScale: {
+                fixLeftEdge: true,
+                fixRightEdge: true,
+                borderVisible: false,
+                rightOffset: 8,
+            },
+            layout: {
+                attributionLogo: false,
+                textColor: p.textColor,
+                background: { color: "transparent" },
+            },
+        }
+    }
+    const getSeriesOptions = (p: { upColor: string, downColor: string, textColor: string }): DeepPartial<CandlestickStyleOptions & SeriesOptionsCommon> => {
+        return {
+            downColor: p.downColor,
+            upColor: p.upColor,
+            borderVisible: false,
+            wickUpColor: p.upColor,
+            wickDownColor: p.downColor,
+        }
+    }
+    const chart = createChart(chartContainer.value as HTMLElement, getOptions(cssProperties));
+    onBeforeUnmount(() => {
+        chart.remove();
     });
+
+    const candlestickSeries = chart.addSeries(CandlestickSeries, getSeriesOptions(cssProperties));
 
     candlestickSeries.attachPrimitive(new TooltipPrimitive());
 
-    const timeScale = chart.timeScale()
+    const timeScale = chart.timeScale();
 
     watch(
         () => props.data,
-        newData => {
+        (newData) => {
             if (newData) {
-                const data = [...newData].sort((a, b) => a.time > b.time ? 1 : -1)
+                const data = [...newData].sort((a, b) => (a.time > b.time ? 1 : -1));
                 candlestickSeries.setData(data);
-                timeScale.fitContent()
+                timeScale.fitContent();
             }
         },
-        { immediate: true }
+        { immediate: true },
     );
 
-
-})
-onBeforeUnmount(() => {
-    if (chart) {
-        chart.remove()
-        chart = null
-    }
-})
+    watch(isPreferredDark, (newVal) => {
+        const css = getProperties();
+        chart.applyOptions(getOptions(css));
+        candlestickSeries.applyOptions(getSeriesOptions(css));
+    })
+});
 </script>

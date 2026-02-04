@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+  <div class="min-h-screen flex flex-col bg-gradient-to-br from-bg-surface to-bg">
     <!-- Header -->
     <PagesStockInfoHeader :data="stock" />
 
@@ -10,20 +10,20 @@
     <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 px-4">
-        <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-600 font-medium">加载中，请稍候...</p>
+        <div class="w-16 h-16 border-4 border-secondary border-t-primary rounded-full animate-spin mb-4"></div>
+        <p class="text-text font-medium">加载中，请稍候...</p>
       </div>
 
       <!-- Error State -->
       <div v-else-if="error" class="flex flex-col items-center justify-center py-20 px-4 text-center">
-        <svg class="w-16 h-16 text-red-400 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="w-16 h-16 text-error mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12" y2="16"></line>
         </svg>
-        <p class="text-gray-600 font-medium text-lg mb-6">{{ error }}</p>
+        <p class="text-text font-medium text-lg mb-6">{{ error }}</p>
         <button @click="refresh()"
-          class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 transform hover:scale-105 active:scale-95">
+          class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-text font-medium rounded-xl hover:from-primary hover:to-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:scale-105 active:scale-95">
           重试
         </button>
       </div>
@@ -45,10 +45,8 @@
 <script lang="ts" setup>
 const route = useRoute()
 
-// 获取股票ID
 const stockId = computed(() => route.params.id as string)
 
-// 使用useAsyncData获取股票详情
 const { data: stock, pending: isLoading, error, refresh } = useAsyncData(`stock-${stockId.value}`, async ({ $api }, { signal }) => {
   const res = await $api("/api/stock/info", {
     query: { id: stockId.value },
