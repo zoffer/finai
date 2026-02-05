@@ -32,7 +32,7 @@
                 <div v-if="keywords && keywords.length > 0" class="flex flex-wrap gap-3">
                     <Tooltip v-for="(item, index) in keywords" :key="index">
                         <span
-                            class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block bg-secondary text-bg-surface">
+                            class="px-3 py-1.5 text-sm rounded-full cursor-help inline-block text-primary ring-1 ring-primary">
                             {{ item.keyword }}
                         </span>
                         <template #tooltip-content>

@@ -37,7 +37,7 @@
                             <div v-if="news.keywords && news.keywords.length > 0" class="mb-2 flex flex-wrap gap-2">
                                 <Tooltip v-for="(keyword, kIndex) in news.keywords" :key="kIndex">
                                     <span
-                                        class="px-2 py-1 text-xs rounded-full cursor-help inline-block bg-secondary text-bg-surface">
+                                        class="px-2 py-1 text-xs rounded-full cursor-help inline-block text-primary ring-1 ring-primary">
                                         {{ keyword.keyword }}
                                     </span>
                                     <template #tooltip-content>
@@ -51,7 +51,7 @@
                                             <div class="mb-1">
                                                 <span class="text-text-muted">置信度: </span>
                                                 <span class="text-accent">{{ (keyword.confidence * 100).toFixed(0)
-                                                }}%</span>
+                                                    }}%</span>
                                             </div>
                                             <div class="text-text">
                                                 <span>{{ keyword.reason }}</span>

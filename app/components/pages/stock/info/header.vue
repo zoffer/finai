@@ -11,7 +11,7 @@
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
                     </button>
-                    <div>
+                    <div class="text-primary">
                         <h1 class="text-xl md:text-2xl font-bold">{{ stock.name || '股票详情' }}</h1>
                         <p class="text-xs md:text-sm opacity-90 mt-0.5">{{ stock.symbol }} - {{ stock.exchange }}</p>
                     </div>
