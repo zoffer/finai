@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-bg-surface to-bg flex flex-col items-center">
+  <div class="min-h-screen bg-linear-to-br from-bg-surface to-bg flex flex-col items-center">
 
     <!-- Main Content -->
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8">
       <!-- Search and Filter Section -->
-      <div class="bg-bg rounded-2xl shadow-[var(--color-shadow)] p-4 sm:p-6 mb-6 sm:mb-8 transition-all duration-300 hover:shadow-[var(--color-shadow)]/20">
+      <div class="bg-bg rounded-2xl shadow-md shadow-shadow p-4 sm:p-6 mb-6 sm:mb-8 transition-all duration-300">
         <div class="flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
           <!-- Search Box -->
           <div class="relative flex-1">

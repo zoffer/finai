@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-gradient-to-br from-bg-surface to-bg">
+  <div class="min-h-screen flex flex-col bg-linear-to-br from-bg-surface to-bg">
     <!-- Header -->
     <PagesStockInfoHeader :data="stock" />
 
     <!-- Candlestick Chart Card -->
-    <LightweightChartsCandlestick class="w-full aspect-[21/9] min-h-[300px] max-h-[66vh]" :data="history" />
+    <LightweightChartsCandlestick class="w-full aspect-21/9 min-h-[300px] max-h-[66vh]" :data="history" />
 
     <!-- Main Content -->
     <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
@@ -23,7 +23,7 @@
         </svg>
         <p class="text-text font-medium text-lg mb-6">{{ error }}</p>
         <button @click="refresh()"
-          class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-text font-medium rounded-xl hover:from-primary hover:to-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:scale-105 active:scale-95">
+          class="px-6 py-3 bg-linear-to-r from-primary to-secondary text-text font-medium rounded-xl hover:from-primary hover:to-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:scale-105 active:scale-95">
           重试
         </button>
       </div>

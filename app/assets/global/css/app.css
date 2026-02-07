@@ -1,4 +1,9 @@
-:root {
-    background-color: var(--color-bg);
-    color: var(--color-text);
+@layer base {
+    :root {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+    }
+    button {
+        cursor: pointer;
+    }
 }
