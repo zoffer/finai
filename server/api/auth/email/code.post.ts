@@ -5,6 +5,7 @@ import { rd } from "~~/server/utils/redis";
 import { REDIS_KEYS } from "~~/server/utils/redis/keys";
 import { ApiError } from "~~/server/utils/api";
 import { randomInt } from "crypto";
+import { AUTH_LOCK, LOCK_LOGIN_DURATION_HOURS } from "~~/server/utils/auth/lock";
 
 const EXPIRATION_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
@@ -61,6 +62,14 @@ async function storeVerificationCodeAndSetCooldown(email: string, code: string):
 
 export default defineApiEventHandler(async (event: H3Event<{ body: z.input<typeof zParameter> }>) => {
     const body = await apiParameterParse(zParameter, await readBody(event));
+
+    const isLocked = await AUTH_LOCK.isLoginLocked(body.email);
+    if (isLocked) {
+        return new ApiError({
+            code: "account_locked",
+            message: `账户已被锁定，请${LOCK_LOGIN_DURATION_HOURS}小时后重试`,
+        });
+    }
 
     const isOnCooldown = await checkCooldown(body.email);
     if (isOnCooldown) {

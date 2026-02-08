@@ -88,11 +88,6 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-interface Errors {
-    email?: string
-    code?: string
-}
-
 const formData = ref<LoginFormData>({
     email: '',
     code: ''

@@ -1,9 +1,15 @@
-import { AUTH_TOKEN_KEY } from "~~/shared/utils/keys";
 export default defineNuxtPlugin((nuxtApp) => {
     const api = $fetch.create({
         onRequest({ request, options, error }) {
-            const token = useCookie(AUTH_TOKEN_KEY, { readonly: true });
-            options.headers.set(AUTH_TOKEN_KEY, token.value || "");
+            if (import.meta.server) {
+                const url = typeof request === "string" ? request : request.url;
+                const isExternal = url.startsWith("http://") || url.startsWith("https://");
+                if (!isExternal) {
+                    // 仅在非外部请求时添加cookie
+                    const cookie = useRequestHeader("cookie") || "";
+                    options.headers.set("cookie", cookie);
+                }
+            }
         },
         async onResponseError({ response }) {
             // 处理未授权错误（401）

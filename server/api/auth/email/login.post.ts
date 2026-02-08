@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { sign } from "~~/server/utils/auth/jwt";
 import { AUTH_KEY } from "~~/server/utils/auth/keys";
 import { customNanoid } from "~~/drizzle/schema/common";
+import { AUTH_LOCK, LOCK_LOGIN_DURATION_HOURS, MAX_LOGIN_ATTEMPTS } from "~~/server/utils/auth/lock";
 
 const EXPIRES_DAY = 3;
 
@@ -51,11 +52,29 @@ async function findOrCreateUser(email: string) {
 export default defineApiEventHandler(async (event: H3Event<{ body: z.input<typeof zParameter> }>) => {
     const body = await apiParameterParse(zParameter, await readBody(event));
 
+    const isLocked = await AUTH_LOCK.isLoginLocked(body.email);
+    if (isLocked) {
+        return new ApiError({
+            code: "account_locked",
+            message: `账户已被锁定，请${LOCK_LOGIN_DURATION_HOURS}小时后重试`,
+        });
+    }
+
     const isValid = await verifyCode(body.email, body.code);
     if (!isValid) {
+        const failCount = await AUTH_LOCK.incrLoginFailedAttempt(body.email);
+        const remainingAttempts = MAX_LOGIN_ATTEMPTS - failCount;
+
+        if (failCount >= MAX_LOGIN_ATTEMPTS) {
+            return new ApiError({
+                code: "account_locked",
+                message: `验证码错误次数过多，账户已被锁定，请${LOCK_LOGIN_DURATION_HOURS}小时后重试`,
+            });
+        }
+
         return new ApiError({
             code: "invalid_code",
-            message: "验证码错误或已过期",
+            message: `验证码错误或已过期，剩余尝试次数：${remainingAttempts}`,
         });
     }
 
