@@ -21,7 +21,7 @@
                         <label for="email" class="block text-sm font-medium text-text-muted mb-2">邮箱地址</label>
                         <div class="relative">
                             <input id="email" v-model="formData.email" type="email" placeholder="请输入邮箱"
-                                :disabled="isSending || isSubmitting" autocomplete="off"
+                                :disabled="isSending || isSubmitting" autocomplete="off" @blur="showError()"
                                 class="w-full px-4 py-3 sm:py-3.5 bg-bg-surface border border-border rounded-xl text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
                             <svg class="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -31,7 +31,8 @@
                                 <polyline points="22,6 12,13 2,6"></polyline>
                             </svg>
                         </div>
-                        <p v-show="errors.email" class="absolute -bottom-6 left-0 text-sm text-error">{{ errors.email }}
+                        <p v-show="errorMessage.email" class="absolute -bottom-6 left-0 text-sm text-error">
+                            {{ errorMessage.email }}
                         </p>
                     </div>
 
@@ -40,6 +41,7 @@
                         <div class="relative">
                             <input id="code" v-model="formData.code" type="text" inputmode="numeric" maxlength="6"
                                 placeholder="请输入6位验证码" :disabled="isSending || isSubmitting" autocomplete="off"
+                                @blur="showError()"
                                 class="w-full pr-28 px-4 py-3 sm:py-3.5 bg-bg-surface border border-border rounded-xl text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
                             <button type="button" @click="sendVerificationCode()"
                                 :disabled="!canSendCode || isSending || isSubmitting"
@@ -48,11 +50,12 @@
                                 {{ countdown > 0 ? `${countdown}秒` : '发送验证码' }}
                             </button>
                         </div>
-                        <p v-show="errors.code" class="absolute -bottom-6 left-0 text-sm text-error">{{ errors.code }}
+                        <p v-show="errorMessage.code" class="absolute -bottom-6 left-0 text-sm text-error">
+                            {{ errorMessage.code }}
                         </p>
                     </div>
 
-                    <button type="submit" :disabled="isSubmitting || !isFormValid"
+                    <button type="submit" :disabled="isSubmitting || zodError != null"
                         class="w-full py-3.5 sm:py-4 bg-linear-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transform hover:scale-[1.02] active:scale-[0.98]">
                         <span v-if="isSubmitting" class="flex items-center justify-center">
                             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
@@ -75,70 +78,70 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { navigateTo } from 'nuxt/app'
 import { z } from 'zod'
-import { useCountdown, watchDebounced } from '@vueuse/core'
+import { useCountdown } from '@vueuse/core'
 import { useToast } from '@/composables/notification/toast'
 
-const loginSchema = z.object({
+const schema = z.object({
     email: z.email('请输入有效的邮箱地址').trim(),
     code: z.string().regex(/^\d{6}$/, '验证码必须是6位数字')
 })
 
-type LoginFormData = z.infer<typeof loginSchema>
+type FormData = z.infer<typeof schema>
 
-const formData = ref<LoginFormData>({
+const formData = ref<FormData>({
     email: '',
     code: ''
 })
 
-const errors = ref<{ [key in keyof LoginFormData]?: string }>({})
+const errorMessage = ref<{ [key in keyof FormData]?: string | null }>({})
+const zodError = computed(() => {
+    const data = formData.value
+    const result = schema.safeParse(data)
+    if (result.success) {
+        return null
+    }
+    const e = z.flattenError(result.error).fieldErrors
+    return {
+        email: e.email != null ? e.email[0] : null,
+        code: e.code != null ? e.code[0] : null,
+    }
+})
+watch(zodError, (val) => {
+    if (val == null) {
+        errorMessage.value = {};
+        return
+    }
+    if (!val.email || !formData.value.email) {
+        errorMessage.value.email = null
+    }
+    if (!val.code || !formData.value.code) {
+        errorMessage.value.code = null
+    }
+})
+const showError = () => {
+    const e = zodError.value
+    if (e == null) return
+    if (formData.value.email) {
+        errorMessage.value.email = e.email
+    }
+    if (formData.value.code) {
+        errorMessage.value.code = e.code
+    }
+}
+
+
 const toast = useToast()
 const { remaining: countdown, start: startCountdown } = useCountdown(0)
 
 const canSendCode = computed(() => {
-    if (countdown.value > 0) return false
-    const emailResult = loginSchema.shape.email.safeParse(formData.value.email)
-    return emailResult.success
+    return countdown.value <= 0 && zodError.value?.email == null
 })
-
-const isFormValid = computed(() => {
-    const result = loginSchema.safeParse(formData.value)
-    return result.success
-})
-
-watchDebounced(() => formData.value, (val) => {
-    const res = loginSchema.safeParse(val)
-    if (res.success) {
-        errors.value = {}
-    } else {
-        const e = z.flattenError(res.error)
-        if (e.fieldErrors.email && val.email.length > 0) {
-            errors.value.email = e.fieldErrors.email[0]
-        } else {
-            errors.value.email = undefined
-        }
-        if (e.fieldErrors.code && val.code.length > 0) {
-            errors.value.code = e.fieldErrors.code[0]
-        } else {
-            errors.value.code = undefined
-        }
-    }
-}, { debounce: 500, deep: true })
-
-const validateEmail = () => {
-    const emailResult = loginSchema.shape.email.safeParse(formData.value.email)
-    if (!emailResult.success) {
-        errors.value.email = emailResult.error.issues[0]?.message || '邮箱验证失败'
-        return false
-    }
-    errors.value.email = undefined
-    return true
-}
 
 const { execute: sendVerificationCode, pending: isSending } = useAsyncData(async ({ $api }, { signal }) => {
-    if (!validateEmail()) return
+    if (!canSendCode.value) return
 
     try {
         const res = await $api('/api/auth/email/code', {
@@ -161,7 +164,7 @@ const { execute: sendVerificationCode, pending: isSending } = useAsyncData(async
 
 const { execute: handleSubmit, pending: isSubmitting } = useAsyncData(async ({ $api }, { signal }) => {
 
-    if (!isFormValid.value) {
+    if (zodError.value != null) {
         return
     }
 

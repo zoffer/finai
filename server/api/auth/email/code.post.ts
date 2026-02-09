@@ -33,7 +33,7 @@ async function sendVerificationEmail(email: string, code: string): Promise<void>
         },
         body: JSON.stringify({
             subject: `验证码：${code}`,
-            title: "邮件验证码",
+            title: "验证码",
             email: email,
             operation: "登录",
             code: code,

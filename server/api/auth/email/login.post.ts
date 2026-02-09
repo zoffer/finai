@@ -43,7 +43,17 @@ async function findOrCreateUser(email: string) {
         return users[0]!;
     }
 
-    const nickname = `USER_${customNanoid(8)}`;
+    const emailName = email.split("@")[0]!;
+    let nickname = emailName;
+
+    while (true) {
+        const existingUsers = await db.select({ id: tUser.id }).from(tUser).where(eq(tUser.nickname, nickname)).limit(1);
+        if (existingUsers.length === 0) {
+            break;
+        }
+        nickname = `${emailName}_${customNanoid(4)}`;
+    }
+
     const newUsers = await db.insert(tUser).values({ nickname, email }).returning();
 
     return newUsers[0]!;
