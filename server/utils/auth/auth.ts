@@ -1,8 +1,8 @@
 import z from "zod";
 import type { H3Event } from "h3";
-import { verify } from "~~/server/utils/auth/jwt";
 import { AUTH_KEY } from "~~/server/utils/auth/keys";
 import { ApiError, HTTP_STATUS } from "~~/server/utils/api";
+import { JWT_MANAGER } from "~~/server/utils/jwt";
 
 const schema = z.object({
     id: z.string().trim(),
@@ -29,8 +29,8 @@ async function handleToken(token: string | null): Promise<AuthContext> {
         throw new Error("认证令牌不存在");
     }
 
-    const result = await verify(token);
-    const userId = result.payload.id;
+    const payload = await JWT_MANAGER.verifyToken(token);
+    const userId = payload.id;
 
     if (!userId || typeof userId != "string") {
         throw new Error("无效认证令牌");

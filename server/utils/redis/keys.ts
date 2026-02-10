@@ -1,4 +1,7 @@
 export const REDIS_KEYS = Object.freeze({
+    auth: Object.freeze({
+        jwt: (kid: string) => `auth:jwt:public_key:${kid}`,
+    }),
     verification: Object.freeze({
         code: (account: string) => `verification:code:${account}`,
         cooldown: (account: string) => `verification:cooldown:${account}`,

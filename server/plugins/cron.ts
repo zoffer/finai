@@ -1,6 +1,6 @@
 import { CronJob } from "cron";
 import { TaskEmitter } from "~~/server/utils/task/index";
-import { StockRankTool } from "~~/server/utils/redis/rank-tool";
+import { JWT_MANAGER } from "~~/server/utils/jwt/index";
 
 export default defineNitroPlugin(() => {
     const common = {
@@ -26,9 +26,9 @@ export default defineNitroPlugin(() => {
     });
     CronJob.from({
         ...common,
-        cronTime: "0 0 * * * *",
+        cronTime: "0 0 3 * * *",
         onTick: async () => {
-            await StockRankTool.v24h.rerank();
+            await JWT_MANAGER.rotateKeys();
         },
     });
     CronJob.from({

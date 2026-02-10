@@ -7,12 +7,10 @@ import { ApiError } from "~~/server/utils/api";
 import { db } from "~~/server/utils/db";
 import { tUser } from "~~/drizzle/schema/user";
 import { eq } from "drizzle-orm";
-import { sign } from "~~/server/utils/auth/jwt";
 import { AUTH_KEY } from "~~/server/utils/auth/keys";
 import { customNanoid } from "~~/drizzle/schema/common";
 import { AUTH_LOCK, LOCK_LOGIN_DURATION_HOURS, MAX_LOGIN_ATTEMPTS } from "~~/server/utils/auth/lock";
-
-const EXPIRES_DAY = 3;
+import { JWT_MANAGER, TOKEN_EXPIRY_HOURS } from "~~/server/utils/jwt";
 
 const zParameter = z.object({
     email: z.email("邮箱格式不正确").trim(),
@@ -90,13 +88,13 @@ export default defineApiEventHandler(async (event: H3Event<{ body: z.input<typeo
 
     const user = await findOrCreateUser(body.email);
 
-    const token = await sign({ id: user.id }, `${EXPIRES_DAY}d`);
+    const token = await JWT_MANAGER.signToken({ id: user.id });
 
     setCookie(event, AUTH_KEY, token, {
         httpOnly: true,
         secure: !import.meta.dev,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * EXPIRES_DAY,
+        maxAge: 3600 * TOKEN_EXPIRY_HOURS,
     });
 
     return {
