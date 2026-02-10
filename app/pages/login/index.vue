@@ -179,7 +179,7 @@ const { execute: handleSubmit, pending: isSubmitting } = useAsyncData(async ({ $
         })
 
         toast.success(response.message || '登录成功，正在跳转...')
-        await navigateTo('/')
+        await navigateTo('/', { replace: true, })
     } catch (error: any) {
         toast.error(error?.data?.message || '登录失败，请检查验证码是否正确')
         console.error('登录失败:', error)
