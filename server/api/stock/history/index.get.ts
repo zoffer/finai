@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import type { H3Event } from "h3";
 import { tStock } from "~~/drizzle/schema/stock";
 import z from "zod";
-import { crawlStockHistory } from "~~/server/utils/data-source/arktools/hist";
+import { crawlStockHistory } from "~~/server/utils/data-source/aktools/hist";
 import { rd } from "~~/server/utils/redis";
 import { REDIS_KEYS } from "~~/server/utils/redis/keys";
 
@@ -24,7 +24,7 @@ const zData = z.array(
         change: z.number(),
         change_amount: z.number(),
         turnover_rate: z.number(),
-    })
+    }),
 );
 
 export default defineApiEventHandler(async (event: H3Event<{ query: z.input<typeof zParameter> }>) => {
@@ -95,6 +95,6 @@ async function cacheData(id: string, data: z.infer<typeof zData>) {
                 type: "EX",
                 value: 60 * 60,
             },
-        }
+        },
     );
 }

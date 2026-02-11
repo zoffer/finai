@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { crawlXQStockInfo } from "~~/server/utils/data-source/arktools/info-xq";
+import { crawlXQStockInfo } from "~~/server/utils/data-source/aktools/info-xq";
 import { aiProvider } from "~~/server/utils/ai/provider";
 import { generateText, Output } from "ai";
 

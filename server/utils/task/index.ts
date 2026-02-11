@@ -1,7 +1,7 @@
 import PQueue from "p-queue";
 import { db } from "~~/server/utils/db";
 import { tNews } from "~~/drizzle/schema/news";
-import { crawlCLSNews } from "~~/server/utils/data-source/arktools/cls-news";
+import { crawlCLSNews } from "~~/server/utils/data-source/aktools/cls-news";
 import { EventEmitter } from "events";
 import { createNewsKeywordTaskUnit } from "./task/news/keyword";
 import { createStockKeywordTaskUnit } from "./task/stock/keyword";
