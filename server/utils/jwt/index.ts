@@ -16,7 +16,7 @@ class LimitSizeMap<K, V> extends Map<K, V> {
         super();
         this.limit = limit;
     }
-    set(key: K, value: V) {
+    override set(key: K, value: V) {
         super.set(key, value);
         while (this.size > this.limit) {
             this.delete(this.keys().next().value!);

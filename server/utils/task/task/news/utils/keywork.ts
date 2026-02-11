@@ -6,7 +6,7 @@ export async function analyzeNews(news: { id: string; title: string; content: st
     const SystemPrompt = (await useStorage("assets:server").getItem("ai/prompts/news-keyword-analysis.txt")) as string;
 
     const res = await generateText({
-        model: aiProvider.zhipu.chatModel("glm-4.5-flash"),
+        model: aiProvider.zhipu.chatModel("GLM-4.5-Flash"),
         messages: [
             { role: "system", content: SystemPrompt },
             { role: "user", content: news.content },
