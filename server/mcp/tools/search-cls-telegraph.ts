@@ -1,79 +1,97 @@
 import { z } from "zod";
-import { eq, sql, innerProduct, asc } from "drizzle-orm";
+import { eq, sql, innerProduct, asc, desc, lt } from "drizzle-orm";
 import { tNews } from "~~/drizzle/schema/news";
 import { tNewsEmbeddingCloudflareQwen3Embedding06b as tNewsEmbedding } from "~~/drizzle/schema/news_embedding";
 import { embed } from "ai";
 import { aiProvider } from "~~/server/utils/ai/provider";
 import { L2Normalize } from "~~/server/utils/vector";
 
-const escapeMarkdownTable = (text: string): string => {
-    return text.replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/\r/g, " ");
-};
+function formatDateString(date: Date): string {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hour = String(d.getHours()).padStart(2, "0");
+    const minute = String(d.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hour}:${minute}`;
+}
+
+async function embedQuery(query: string): Promise<number[]> {
+    const res = await embed({
+        model: aiProvider.cloudflare.embeddingModel("workers-ai/@cf/qwen/qwen3-embedding-0.6b"),
+        value: query,
+    });
+    const { vector } = L2Normalize(res.embedding);
+    return vector;
+}
+
+async function searchNewsByVector(vector: number[], options: { limit: number; sortBy: "similarity" | "date" }) {
+    const sq = db.$with("sq").as(
+        db
+            .select({
+                title: tNews.title,
+                content: tNews.content,
+                date: tNews.date,
+                // Note: <#> returns the negative inner product since Postgres only supports ASC order index scans on operators
+                cosine: innerProduct(tNewsEmbedding.embedding, vector)
+                    .mapWith((score: number) => Math.min(1, -score))
+                    .as("cosine"),
+            })
+            .from(tNews)
+            .innerJoin(tNewsEmbedding, eq(tNews.id, tNewsEmbedding.news_id)),
+    );
+    const orderBy = options.sortBy === "date" ? desc(sq.date) : asc(sq.cosine);
+    return await db.with(sq).select().from(sq).where(lt(sq.cosine, -0.4)).orderBy(orderBy).limit(options.limit);
+}
+
+function formatSearchResults(
+    list: Array<{ title: string; content: string; date: Date; cosine: number }>,
+    query: string,
+): string {
+    let resultsText: string;
+    if (list.length > 0) {
+        resultsText = list
+            .map((item, index) => {
+                const title = item.title ? item.title.trim() : "无标题";
+                return [
+                    `## ${index + 1}. ${title}`,
+                    `- 日期: ${formatDateString(item.date)}`,
+                    `- 相似度: ${item.cosine.toFixed(4)}`,
+                    "",
+                    item.content,
+                ].join("\n");
+            })
+            .join("\n\n---\n\n");
+    } else {
+        resultsText = "未找到匹配的新闻文章。";
+    }
+    return `# 搜索查询: "${query}"\n\n\n${resultsText}`;
+}
 
 export default defineMcpTool({
     description: "使用向量搜索以找到与查询最相关的财联社电报内容。",
     inputSchema: {
         q: z.string().describe("搜索查询，用于查找相关新闻文章"),
         limit: z.int().min(1).max(100).default(10).describe("返回的最大结果数（1-100，默认：10）"),
+        sortBy: z
+            .enum(["similarity", "date"])
+            .default("similarity")
+            .describe("排序方式：similarity-按相似度排序（默认），date-按时间排序"),
     },
-    outputSchema: {
-        q: z.string(),
-        data: z.array(
-            z.object({
-                title: z.string(),
-                date: z.coerce.string<Date>(),
-                cosine_distance: z.number(),
-                content: z.string(),
-            }),
-        ),
-    },
-    handler: async ({ q, limit }) => {
-        const res = await embed({
-            model: aiProvider.cloudflare.embeddingModel("workers-ai/@cf/qwen/qwen3-embedding-0.6b"),
-            value: q,
-        });
-        const { vector } = L2Normalize(res.embedding);
-
-        const list = await db
-            .select({
-                title: tNews.title,
-                content: tNews.content,
-                date: tNews.date,
-                // Note: <#> returns the negative inner product since Postgres only supports ASC order index scans on operators
-                cosine_distance: innerProduct(tNewsEmbedding.embedding, vector)
-                    .mapWith((score: number) => Math.max(0, 1 + score))
-                    .as("cosine_distance"),
-            })
-            .from(tNews)
-            .innerJoin(tNewsEmbedding, eq(tNews.id, tNewsEmbedding.news_id))
-            .orderBy(asc(sql`cosine_distance`))
-            .limit(limit);
-
-        let resultsText: string;
-        if (list.length > 0) {
-            const rows = list
-                .map((item, index) => {
-                    const cosineDistance = Math.abs(item.cosine_distance || 0).toFixed(4);
-                    const content = item.content?.substring(0, 200) ?? "";
-                    const truncated = item.content && item.content.length > 200 ? "..." : "";
-                    return `| ${index + 1} | ${escapeMarkdownTable(item.title)} | ${item.date.toISOString()} | ${cosineDistance} | ${escapeMarkdownTable(content)}${truncated} |`;
-                })
-                .join("\n");
-            resultsText = [
-                "| 序号 | 标题 | 日期 | 余弦距离 | 内容 |",
-                "|---|--------|------|----------------|------|",
-                rows,
-            ].join("\n");
-        } else {
-            resultsText = "未找到匹配的新闻文章。";
+    handler: async ({ q, limit, sortBy }) => {
+        try {
+            const vector = await embedQuery(q);
+            const list = await searchNewsByVector(vector, { limit, sortBy });
+            const resultsText = formatSearchResults(list, q);
+            return {
+                content: [{ type: "text", text: resultsText }],
+            };
+        } catch (error) {
+            console.error(error);
+            return {
+                content: [{ type: "text", text: "服务器错误，请稍后重试。" }],
+                isError: true,
+            };
         }
-
-        return {
-            content: [{ type: "text", text: `搜索查询: "${q}"\n\n结果:\n${resultsText}` }],
-            structuredContent: {
-                q,
-                data: list,
-            },
-        };
     },
 });
