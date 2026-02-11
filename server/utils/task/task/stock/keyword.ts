@@ -23,7 +23,10 @@ export function createStockKeywordTaskUnit() {
                 .orderBy(sql`${max(tStockDynamicData.turnover)} DESC NULLS LAST`)
                 .limit(num);
         },
-        async consume(item) {
+        async consume(item, raw) {
+            if (raw.deliveriesCounter && raw.deliveriesCounter > 10) {
+                return;
+            }
             const count = await db.$count(tStockKeyword, and(eq(tStockKeyword.stock_id, item.id), updateTimeCondition));
             if (count > 0) {
                 return;
