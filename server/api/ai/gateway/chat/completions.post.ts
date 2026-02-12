@@ -25,6 +25,7 @@ const zParameter = z.object({
 });
 
 async function transformRequestBody(body: z.infer<typeof zParameter>) {
+    body.max_tokens = Math.min(body.max_tokens || 8192, 8192);
     return body;
 }
 
