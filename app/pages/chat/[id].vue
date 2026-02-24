@@ -46,15 +46,32 @@
                 </div>
 
                 <div v-if="isLoading" class="flex justify-start">
-                    <div class="text-text px-4 py-2.5">
-                        <div class="flex items-center space-x-2">
-                            <div class="flex space-x-1">
-                                <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce"
-                                    style="animation-delay: 0ms"></div>
-                                <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce"
-                                    style="animation-delay: 150ms"></div>
-                                <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce"
-                                    style="animation-delay: 300ms"></div>
+                    <div class="text-text px-4 py-2.5 flex items-center space-x-2">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style="animation-delay: 0ms">
+                            </div>
+                            <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce"
+                                style="animation-delay: 150ms"></div>
+                            <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce"
+                                style="animation-delay: 300ms"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="errorMessage" class="flex justify-start">
+                    <div
+                        class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 rounded-2xl px-4 py-3 max-w-[85%] sm:max-w-[75%]">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm">{{ errorMessage }}</p>
+                                <button @click="errorMessage = ''"
+                                    class="mt-2 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors">
+                                    关闭
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -89,12 +106,22 @@
                                 </button>
                             </div>
                         </div>
-                        <button type="submit" :disabled="isLoading || !input.trim()"
-                            class="p-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button :type="isLoading ? 'button' : 'submit'"
+                            @click="isLoading ? cancelGeneration() : undefined" :disabled="!isLoading && !input.trim()"
+                            :class="[
+                                'p-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+                                'bg-primary hover:bg-primary/90 text-white'
+                            ]">
+                            <svg v-if="!isLoading" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
+                            <div v-else class="w-4 h-4 flex items-center justify-center">
+                                <svg class="w-3 h-3" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                                    <rect width="16" height="16" x="4" y="4" />
+                                </svg>
+                            </div>
                         </button>
                     </div>
                 </form>
@@ -104,9 +131,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, shallowRef, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { streamText } from 'ai'
+import { streamText, RetryError, APICallError } from 'ai'
 import { useAIProvider } from '@/composables/ai/provider'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
 
@@ -118,13 +145,16 @@ interface Message {
     showReasoning?: boolean
 }
 
+const ABORT_REASON = "user-stop"
 const provider = useAIProvider()
 
 const messages = ref<Message[]>([])
 const input = ref('')
 const isLoading = ref(false)
+const errorMessage = ref<string>('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const showModelMenu = ref(false)
+const abortController = shallowRef<AbortController | null>(null)
 
 const availableModels = ['GLM-4.5-Flash', 'GLM-4.7-Flash'] as const
 const selectedModel = ref<(typeof availableModels)[number]>('GLM-4.7-Flash')
@@ -134,6 +164,19 @@ const selectModel = (model: (typeof availableModels)[number]) => {
     showModelMenu.value = false
 }
 
+watch(input, () => {
+    if (input.value.trim()) {
+        clearError()
+    }
+})
+
+const cancelGeneration = () => {
+    if (abortController.value) {
+        abortController.value.abort(ABORT_REASON)
+        abortController.value = null
+    }
+}
+
 const scrollToBottom = async () => {
     await nextTick()
     if (messagesContainer.value) {
@@ -141,9 +184,14 @@ const scrollToBottom = async () => {
     }
 }
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+const generateId = () => `${Date.now()}-${Math.random().toString(36)}`
+
+const clearError = () => {
+    errorMessage.value = ''
+}
 
 const sendMessage = async () => {
+    clearError()
     const userMessage = input.value.trim()
     if (!userMessage || isLoading.value) return
 
@@ -160,12 +208,15 @@ const sendMessage = async () => {
     isLoading.value = true
 
     try {
+        abortController.value = new AbortController()
         const result = streamText({
             model: provider.chatModel(selectedModel.value),
             messages: messages.value.map(m => ({
                 role: m.role,
                 content: m.content
             })),
+            abortSignal: abortController.value.signal,
+            maxRetries: 1,
         })
 
         const assistantMessage: Message = {
@@ -177,6 +228,7 @@ const sendMessage = async () => {
         }
         messages.value.push(assistantMessage)
         const msg = messages.value[messages.value.length - 1]!
+        let hasError = false
 
         for await (const delta of result.fullStream) {
             if (delta.type === 'reasoning-delta') {
@@ -184,19 +236,38 @@ const sendMessage = async () => {
             } else if (delta.type === 'text-delta') {
                 msg.showReasoning = false
                 msg.content += delta.text
+            } else if (delta.type === "error") {
+                hasError = true
+                let error = delta.error
+                console.error('stream error:', error)
+                if (RetryError.isInstance(error)) {
+                    error = error.lastError
+                }
+                if (APICallError.isInstance(error)) {
+                    errorMessage.value = error.message || '抱歉，发生了错误，请稍后重试。'
+                } else {
+                    errorMessage.value = '抱歉，发生了错误，请稍后重试。'
+                }
             }
             await scrollToBottom()
         }
 
+        if (hasError) {
+            messages.value.pop()
+        }
+
+
     } catch (error) {
-        console.error('Chat error:', error)
-        messages.value.push({
-            id: generateId(),
-            role: 'assistant',
-            content: '抱歉，发生了错误，请稍后重试。'
-        })
+        console.error('Chat error:', error, typeof error)
+        if (abortController.value && !abortController.value.signal.aborted) {
+            messages.value.pop()
+            errorMessage.value = '抱歉，发生了错误，请稍后重试。'
+        } else if (messages.value[messages.value.length - 1]?.content === '' && messages.value[messages.value.length - 1]?.reasoning === '') {
+            messages.value.pop()
+        }
     } finally {
         isLoading.value = false
+        abortController.value = null
         await scrollToBottom()
     }
 }

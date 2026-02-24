@@ -1,5 +1,4 @@
 import type { H3Event } from "h3";
-import { sendStream } from "h3";
 import z from "zod";
 import { apiParameterParse } from "~~/server/utils/zod/parse";
 import { defineApiEventHandler } from "~~/server/utils/api";
@@ -24,6 +23,23 @@ const zParameter = z.object({
     response_format: z.object({ type: z.enum(["text", "json_object"]) }).optional(),
 });
 
+function getAbortController(event: H3Event) {
+    const res = event.node.res;
+    const req = event.node.req;
+    const abortController = new AbortController();
+    // 请求中断时触发取消
+    req.on("close", () => {
+        console.log("请求中断，正在取消操作...");
+        abortController.abort(); // 取消异步操作
+    });
+    // 响应中断时触发取消
+    res.on("close", () => {
+        console.log("响应中断，正在取消操作...");
+        abortController.abort(); // 取消异步操作
+    });
+    return abortController;
+}
+
 async function transformRequestBody(body: z.infer<typeof zParameter>) {
     body.max_tokens = Math.min(body.max_tokens || 8192, 8192);
     return body;
@@ -33,38 +49,20 @@ async function proxyRequest(body: z.infer<typeof zParameter>, event: H3Event) {
     const baseUrl = ZAI_BASE_URL.endsWith("/") ? ZAI_BASE_URL : `${ZAI_BASE_URL}/`;
     const url = new URL(`${baseUrl}chat/completions`);
 
-    const response = await fetch(url, {
+    return fetch(url, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${process.env.ZAI_API_KEY}`,
         },
+        signal: getAbortController(event).signal,
         body: JSON.stringify(body),
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    return response;
 }
 
 export default defineApiEventHandler(async (event: H3Event<{ body: z.input<typeof zParameter> }>) => {
     const body = await apiParameterParse(zParameter, await readBody(event));
     const transformedBody = await transformRequestBody(body);
 
-    const response = await proxyRequest(transformedBody, event);
-
-    if (transformedBody.stream) {
-        setResponseHeaders(event, {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-        });
-
-        return sendStream(event, response.body!);
-    }
-
-    return await response.json();
+    return proxyRequest(transformedBody, event);
 });
