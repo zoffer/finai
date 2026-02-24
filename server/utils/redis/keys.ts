@@ -7,9 +7,6 @@ export const REDIS_KEYS = Object.freeze({
         cooldown: (account: string) => `verification:cooldown:${account}`,
         failCount: (account: string) => `verification:fail:count:${account}`,
     }),
-    stock: Object.freeze({
-        historyCache: "stock:history:cache:H",
-    }),
     news: Object.freeze({
         keywordDeliverRecord: "news:keyword:deliver:record:H",
     }),
