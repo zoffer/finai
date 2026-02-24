@@ -1,30 +1,40 @@
+import PQueue from "p-queue";
+import { db } from "~~/server/utils/db";
+
 const NUXT_AKTOOLS_URL = process.env.AKTOOLS_URL;
+const XQQueue = new PQueue({ intervalCap: 1, interval: 1000 * 30 });
+
 import { tStock } from "~~/drizzle/schema/stock";
 import { eq, and, sql } from "drizzle-orm";
 
-type Data = {
-    item: string;
-    value: string | number;
-} | {
-    item: "affiliate_industry",
-    value: { ind_code: string; ind_name: string; };
-}
+type Data =
+    | {
+          item: string;
+          value: string | number;
+      }
+    | {
+          item: "affiliate_industry";
+          value: { ind_code: string; ind_name: string };
+      };
 
-export async function crawlXQStockInfo(stock: { symbol: string, exchange: string }) {
-    const code = stock.exchange + stock.symbol
-    const res = await $fetch<Array<Data>>(`${NUXT_AKTOOLS_URL}/api/public/stock_individual_basic_info_xq`, {
-        query: { symbol: code }
-    })
+export async function crawlXQStockInfo(stock: { symbol: string; exchange: string }) {
+    const code = stock.exchange + stock.symbol;
+    const res = await XQQueue.add(() =>
+        $fetch<Array<Data>>(`${NUXT_AKTOOLS_URL}/api/public/stock_individual_basic_info_xq`, {
+            query: { symbol: code },
+            timeout: 30000,
+        }),
+    );
     for (const item of res) {
         if (item.item === "org_cn_introduction") {
             const introduction = item.value as string;
-            if (introduction === null) {
-                return res;
+            if (introduction && typeof introduction === "string") {
+                await db
+                    .update(tStock)
+                    .set({ introduction, updated_at: sql`NOW()` })
+                    .where(and(eq(tStock.symbol, stock.symbol), eq(tStock.exchange, stock.exchange)));
             }
-            await db.update(tStock)
-                .set({ introduction, updated_at: sql`NOW()` })
-                .where(and(eq(tStock.symbol, stock.symbol), eq(tStock.exchange, stock.exchange)));
-            break
+            break;
         }
     }
     return res;
