@@ -9,7 +9,7 @@
 - **缓存**: Redis
 - **定时任务**: cron
 - **AI集成**: @ai-sdk/deepseek, ai
-- **样式**: TailwindCSS + Sass
+- **样式**: TailwindCSS
 - **认证**: JWT (jose)
 - **容器化**: Docker
 
@@ -65,6 +65,7 @@ npm run dev
 ```
 
 若开发环境缺少数据库等依赖服务，可执行以下命令快速创建：
+
 ```
 docker compose -f docker-compose.dev.yml up -d
 ```
@@ -80,7 +81,6 @@ npm run db-push:dev
 ## 生产构建
 
 ### 本地构建
-
 
 ### Docker部署
 
@@ -115,14 +115,14 @@ docker-compose up -d --no-build
 
 ## 脚本命令
 
-| 命令 | 描述 |
-|------|------|
-| `dev` | 启动开发服务器 |
-| `build` | 构建生产版本 |
-| `generate` | 静态生成网站 |
-| `preview` | 预览生产构建 |
+| 命令          | 描述                     |
+| ------------- | ------------------------ |
+| `dev`         | 启动开发服务器           |
+| `build`       | 构建生产版本             |
+| `generate`    | 静态生成网站             |
+| `preview`     | 预览生产构建             |
 | `db:push:dev` | 推送数据库变更到开发环境 |
-| `db:generate` | 生成数据库迁移文件 |
+| `db:generate` | 生成数据库迁移文件       |
 
 ## 开发文档
 

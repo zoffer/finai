@@ -14,6 +14,7 @@ export default defineNuxtConfig({
     // https://nuxt.com/docs/4.x/api/nuxt-config#runtimeconfig-1
     vite: {
         build: { target: "es2015" },
+        // @ts-expect-error @nuxt/schema 4.3.1 inlines vite types, breaking compatibility with @tailwindcss/vite
         plugins: [tailwindcss()],
     },
 
