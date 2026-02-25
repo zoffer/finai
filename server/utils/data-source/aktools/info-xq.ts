@@ -2,7 +2,7 @@ import PQueue from "p-queue";
 import { db } from "~~/server/utils/db";
 
 const NUXT_AKTOOLS_URL = process.env.AKTOOLS_URL;
-const XQQueue = new PQueue({ intervalCap: 1, interval: 1000 * 30 });
+const XQQueue = new PQueue({ intervalCap: 1, interval: 1000 * 60 });
 
 import { tStock } from "~~/drizzle/schema/stock";
 import { eq, and, sql } from "drizzle-orm";
