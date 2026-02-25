@@ -1,7 +1,7 @@
 <template>
     <div class="min-h-screen bg-bg flex flex-col">
         <main class="flex-1 w-full h-screen max-h-screen max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
-            <div ref="messagesContainer" class="flex-1 overflow-y-auto space-y-4">
+            <div ref="messagesContainer" class="flex-1 overflow-y-auto">
                 <div v-if="messages.length === 0"
                     class="flex flex-col items-center justify-center h-full text-center py-12">
                     <div class="w-16 h-16 mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -14,7 +14,7 @@
                     <p class="text-text-muted text-sm">输入消息开始与 AI 助手交流</p>
                 </div>
 
-                <div v-for="message in messages" :key="message.id" :class="[
+                <div v-for="(message, index) in messages" :key="index" :class="[
                     'flex',
                     message.role === 'user' ? 'justify-end' : 'justify-start'
                 ]">
@@ -24,83 +24,90 @@
                         'bg-primary text-white rounded-2xl rounded-br-sm'
                     ]">
                         <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
-                            {{ message.content }}
+                            {{message.content.map((part) => part.text).join('')}}
                         </div>
                     </div>
 
                     <!-- 助手消息 -->
                     <div v-else-if="message.role === 'assistant'" :class="[
-                        'max-w-[85%] sm:max-w-[75%] px-4 py-2.5',
+                        'max-w-[85%] sm:max-w-[75%] px-4',
                         'text-text'
                     ]">
-                        <div v-if="message.reasoning" class="mb-3">
-                            <button @click="message.showReasoning = !message.showReasoning"
-                                class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                <svg :class="['w-3 h-3 transition-transform', message.showReasoning ? 'rotate-90' : '']"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7" />
-                                </svg>
-                                <span>思考过程</span>
-                            </button>
-                            <div v-show="message.showReasoning"
-                                class="bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed">
-                                {{ message.reasoning }}
-                            </div>
-                        </div>
-
-                        <!-- 工具调用展示 -->
-                        <div v-if="message.toolCall" class="mb-3">
-                            <button @click="message.showToolCall = !message.showToolCall"
-                                class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                <svg :class="['w-3 h-3 transition-transform', message.showToolCall ? 'rotate-90' : '']"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7" />
-                                </svg>
-                                <span>工具调用: {{ message.toolCall.toolName }}</span>
-                            </button>
-                            <div v-show="message.showToolCall"
-                                class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                                <div class="text-xs text-text-muted">
-                                    <pre
-                                        class="whitespace-pre-wrap">{{ JSON.stringify(message.toolCall.input, null, 2) }}</pre>
+                        <!-- 消息内容 -->
+                        <template v-for="(part, partIndex) in message.content" :key="partIndex">
+                            <!-- 思考过程 -->
+                            <div v-if="part.type === 'reasoning'">
+                                <button @click="part.showReasoning = !part.showReasoning"
+                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors">
+                                    <svg :class="['w-3 h-3 transition-transform', part.showReasoning ? 'rotate-90' : '']"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span>思考过程</span>
+                                </button>
+                                <div v-show="part.showReasoning"
+                                    class="bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed">
+                                    {{ part.text }}
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
-                            {{ message.content }}
-                        </div>
+                            <!-- 工具调用展示 -->
+                            <div v-else-if="part.type === 'tool-call'">
+                                <button @click="part.showToolCall = !part.showToolCall"
+                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
+                                    <svg :class="['w-3 h-3 transition-transform', part.showToolCall ? 'rotate-90' : '']"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span>工具调用: {{ part.toolName }}</span>
+                                </button>
+                                <div v-show="part.showToolCall"
+                                    class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    <div class="text-xs text-text-muted">
+                                        <pre class="whitespace-pre-wrap">{{ JSON.stringify(part.input, null, 2) }}</pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 文本内容 -->
+                            <div v-else-if="part.type === 'text'" class="my-4">
+                                <span class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
+                                    {{ part.text }}
+                                </span>
+                            </div>
+                        </template>
                     </div>
 
                     <!-- 工具结果消息 -->
                     <div v-else-if="message.role === 'tool'" class="max-w-[85%] sm:max-w-[75%] px-4 py-2.5 text-text">
-                        <button @click="message.showToolResult = !message.showToolResult"
-                            class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                            <svg :class="['w-3 h-3 transition-transform', message.showToolResult ? 'rotate-90' : '']"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 5l7 7-7 7" />
-                            </svg>
-                            <span class="text-xs font-medium">
-                                {{ message.toolResult?.isError ? '工具错误' : '工具结果' }}: {{ message.toolResult?.toolName }}
-                            </span>
-                        </button>
-                        <div v-show="message.showToolResult" :class="[
-                            'rounded-lg p-3',
-                            message.toolResult?.isError
-                                ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'
-                                : 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800'
-                        ]">
-                            <div class="text-xs text-text-muted">
-                                <pre class="whitespace-pre-wrap">{{ message.content }}</pre>
+                        <template v-for="(part, partIndex) in message.content" :key="partIndex">
+                            <div v-if="part.type === 'tool-result'">
+                                <button @click="part.showToolResult = !part.showToolResult"
+                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
+                                    <svg :class="['w-3 h-3 transition-transform', part.showToolResult ? 'rotate-90' : '']"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span class="text-xs font-medium">
+                                        工具结果: {{ part.toolName }}
+                                    </span>
+                                </button>
+                                <div v-show="part.showToolResult"
+                                    class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                    <div class="text-xs text-text-muted">
+                                        <pre
+                                            class="whitespace-pre-wrap">{{ typeof part.output === 'object' && part.output !== null ? JSON.stringify(part.output, null, 2) : String(part.output) }}</pre>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </template>
                     </div>
                 </div>
 
-                <div v-if="isLoading" class="flex justify-start">
+                <div v-if="status === 'pending'" class="flex justify-start">
                     <div class="text-text px-4 py-2.5 flex items-center space-x-2">
                         <div class="flex space-x-1">
                             <div class="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style="animation-delay: 0ms">
@@ -113,7 +120,7 @@
                     </div>
                 </div>
 
-                <div v-if="errorMessage" class="flex justify-start">
+                <div v-if="status === 'error'" class="flex justify-start">
                     <div
                         class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 rounded-2xl px-4 py-3 max-w-[85%] sm:max-w-[75%]">
                         <div class="flex items-start gap-2">
@@ -122,11 +129,9 @@
                                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <div class="flex-1">
-                                <p class="text-sm">{{ errorMessage }}</p>
-                                <button @click="errorMessage = ''"
-                                    class="mt-2 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors">
-                                    关闭
-                                </button>
+                                <p class="text-sm">{{ typeof error === 'object' && error !== null && 'message' in error
+                                    ? error.message
+                                    : '抱歉，发生了错误，请稍后重试。' }}</p>
                             </div>
                         </div>
                     </div>
@@ -136,7 +141,7 @@
             <footer class="flex-initial py-4">
                 <form @submit.prevent="sendMessage"
                     class="bg-bg-surface rounded-2xl border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200">
-                    <AutoResizeTextarea v-model="input" :disabled="isLoading"
+                    <AutoResizeTextarea v-model="input" :disabled="status === 'pending'"
                         class="w-full px-4 pt-3 pb-2 rounded-t-2xl border-0 focus:outline-none text-sm font-medium bg-transparent text-text placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[4em] max-h-[16em] resize-none" />
                     <div class="flex items-center justify-between px-3 pb-3">
                         <div class="relative">
@@ -161,13 +166,13 @@
                                 </button>
                             </div>
                         </div>
-                        <button :type="isLoading ? 'button' : 'submit'"
-                            @click="isLoading ? cancelGeneration() : undefined" :disabled="!isLoading && !input.trim()"
-                            :class="[
+                        <button :type="status === 'pending' ? 'button' : 'submit'"
+                            @click="status === 'pending' ? cancel() : undefined"
+                            :disabled="status === 'pending' || !input.trim()" :class="[
                                 'p-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
                                 'bg-primary hover:bg-primary/90 text-white'
                             ]">
-                            <svg v-if="!isLoading" class="w-4 h-4" fill="none" stroke="currentColor"
+                            <svg v-if="status !== 'pending'" class="w-4 h-4" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -186,49 +191,16 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, shallowRef, watch, nextTick, onUnmounted, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { streamText, RetryError, APICallError, ToolLoopAgent } from 'ai'
-import { createMCPClient, type MCPClient } from '@ai-sdk/mcp'
-import { useAIProvider } from '@/composables/ai/provider'
+import { ref, watch, nextTick } from 'vue'
+import { useFinaiAgent } from '@/composables/ai/agent/finai'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
 
-interface ToolCall {
-    toolCallId: string
-    toolName: string
-    input: any
-}
-
-interface ToolResult {
-    toolCallId: string
-    toolName: string
-    result: any
-    isError?: boolean
-}
-
-interface Message {
-    id: string
-    role: 'user' | 'assistant' | 'tool'
-    content: string
-    reasoning?: string
-    showReasoning?: boolean
-    toolCall?: ToolCall
-    showToolCall?: boolean
-    toolResult?: ToolResult
-    showToolResult?: boolean
-}
-
-const ABORT_REASON = "user-stop"
-const provider = useAIProvider()
-
-const messages = ref<Message[]>([])
 const input = ref('')
-const isLoading = ref(false)
-const errorMessage = ref<string>('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const showModelMenu = ref(false)
-const abortController = shallowRef<AbortController | null>(null)
-const mcpClient = shallowRef<MCPClient | undefined>()
+
+// 使用 useFinaiAgent
+const { send, cancel, messages, status, error } = useFinaiAgent()
 
 const availableModels = ['GLM-4.5-Flash', 'GLM-4.7-Flash'] as const
 const selectedModel = ref<(typeof availableModels)[number]>('GLM-4.7-Flash')
@@ -238,57 +210,11 @@ const selectModel = (model: (typeof availableModels)[number]) => {
     showModelMenu.value = false
 }
 
-// 初始化MCP客户端
-const initMCPClient = async () => {
-    try {
-        // 动态拼接URL，适应不同环境
-        const baseUrl = window.location.origin
-        mcpClient.value = await createMCPClient({
-            transport: {
-                type: 'http',
-                url: `${baseUrl}/mcp`
-            }
-        })
-    } catch (error) {
-        console.error('Failed to initialize MCP client:', error)
-    }
-}
-
-// 关闭MCP客户端
-const closeMCPClient = async () => {
-    if (mcpClient.value) {
-        try {
-            await mcpClient.value.close()
-        } catch (error) {
-            console.error('Failed to close MCP client:', error)
-        } finally {
-            mcpClient.value = undefined
-        }
-    }
-}
-
-// 组件挂载时初始化MCP客户端
-onMounted(async () => {
-    await initMCPClient()
-})
-
-// 组件卸载时关闭MCP客户端
-onUnmounted(() => {
-    closeMCPClient()
-})
-
 watch(input, () => {
     if (input.value.trim()) {
-        clearError()
+        // 清除错误
     }
 })
-
-const cancelGeneration = () => {
-    if (abortController.value) {
-        abortController.value.abort(ABORT_REASON)
-        abortController.value = null
-    }
-}
 
 const scrollToBottom = async () => {
     await nextTick()
@@ -297,179 +223,29 @@ const scrollToBottom = async () => {
     }
 }
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36)}`
-
 const clearError = () => {
-    errorMessage.value = ''
+    // 错误处理由 useFinaiAgent 管理
 }
 
 const sendMessage = async () => {
     clearError()
     const userMessage = input.value.trim()
-    if (!userMessage || isLoading.value) return
+    if (!userMessage || status.value === 'pending') return
 
     input.value = ''
 
-    messages.value.push({
-        id: generateId(),
-        role: 'user',
-        content: userMessage
-    })
+    // 调用 useFinaiAgent 的 send 方法
+    await send([
+        {
+            role: 'user',
+            content: [{
+                type: 'text',
+                text: userMessage
+            }]
+        },
+        { model: selectedModel.value }
+    ])
 
     await scrollToBottom()
-
-    isLoading.value = true
-
-    try {
-        // 获取MCP工具
-        let tools = undefined
-        if (mcpClient.value) {
-            try {
-                tools = await mcpClient.value.tools()
-            } catch (error) {
-                console.error('Failed to get MCP tools:', error)
-            }
-        }
-
-        abortController.value = new AbortController()
-
-        // 准备消息历史，确保包含工具调用和结果
-        const prepareMessages = messages.value
-            .filter(m => m.role === 'user' || m.role === 'assistant')
-            .map(m => ({
-                role: m.role as 'user' | 'assistant',
-                content: m.content
-            }))
-
-        // 创建ToolLoopAgent实例
-        const agent = new ToolLoopAgent({
-            model: provider.chatModel(selectedModel.value),
-            tools: tools || {},
-            stopWhen: ({ steps }) => steps.length > 20, // 最多20步
-        })
-
-        let hasError = false
-        let currentAssistantMessage: Message | null = null
-        let currentToolCallId: string | null = null
-
-        // 使用agent.stream()来获取流式响应
-        const result = await agent.stream({
-            messages: prepareMessages,
-            abortSignal: abortController.value.signal
-        })
-
-        for await (const delta of result.fullStream) {
-            if (delta.type === 'reasoning-delta') {
-                if (!currentAssistantMessage) {
-                    // 先创建基本对象并push到数组中，确保响应式
-                    messages.value.push({
-                        id: generateId(),
-                        role: 'assistant',
-                        content: '',
-                        reasoning: delta.text,
-                        showReasoning: true
-                    })
-                    // 从数组中取出，确保操作的是响应式对象
-                    currentAssistantMessage = messages.value[messages.value.length - 1]!
-                } else {
-                    currentAssistantMessage.reasoning += delta.text
-                }
-            } else if (delta.type === 'text-delta') {
-                if (!currentAssistantMessage) {
-                    // 先创建基本对象并push到数组中，确保响应式
-                    messages.value.push({
-                        id: generateId(),
-                        role: 'assistant',
-                        content: delta.text,
-                        reasoning: '',
-                        showReasoning: false
-                    })
-                    // 从数组中取出，确保操作的是响应式对象
-                    currentAssistantMessage = messages.value[messages.value.length - 1]!
-                } else {
-                    currentAssistantMessage.showReasoning = false
-                    currentAssistantMessage.content += delta.text
-                }
-            } else if (delta.type === 'tool-call') {
-                // 工具调用开始
-                if (!currentAssistantMessage) {
-                    // 先创建基本对象并push到数组中，确保响应式
-                    messages.value.push({
-                        id: generateId(),
-                        role: 'assistant',
-                        content: '',
-                        reasoning: '',
-                        showReasoning: true,
-                        showToolCall: false,
-                        toolCall: {
-                            toolCallId: delta.toolCallId,
-                            toolName: delta.toolName,
-                            input: delta.input
-                        }
-                    })
-                    // 从数组中取出，确保操作的是响应式对象
-                    currentAssistantMessage = messages.value[messages.value.length - 1]!
-                } else {
-                    currentAssistantMessage.toolCall = {
-                        toolCallId: delta.toolCallId,
-                        toolName: delta.toolName,
-                        input: delta.input
-                    }
-                    currentAssistantMessage.showToolCall = false
-                }
-                currentToolCallId = delta.toolCallId
-            } else if (delta.type === 'tool-result') {
-                // 工具调用结果
-                if (currentToolCallId) {
-                    const toolResultMessage: Message = {
-                        id: generateId(),
-                        role: 'tool',
-                        content: JSON.stringify(delta.output, null, 2),
-                        toolResult: {
-                            toolCallId: currentToolCallId,
-                            toolName: delta.toolName,
-                            result: delta.output,
-                            isError: 'isError' in delta ? Boolean(delta.isError) : false
-                        },
-                        showToolResult: false
-                    }
-                    messages.value.push(toolResultMessage)
-                    currentToolCallId = null
-                    // 工具执行完成后，重置currentAssistantMessage，开启新一轮回复
-                    currentAssistantMessage = null
-                }
-            } else if (delta.type === "error") {
-                hasError = true
-                let error = delta.error
-                console.error('stream error:', error)
-                if (RetryError.isInstance(error)) {
-                    error = error.lastError
-                }
-                if (APICallError.isInstance(error)) {
-                    errorMessage.value = error.message || '抱歉，发生了错误，请稍后重试。'
-                } else {
-                    errorMessage.value = '抱歉，发生了错误，请稍后重试。'
-                }
-            }
-            await scrollToBottom()
-        }
-
-        if (hasError && currentAssistantMessage) {
-            messages.value.pop()
-        }
-
-    } catch (error) {
-        console.error('Chat error:', error, typeof error)
-        if (abortController.value && !abortController.value.signal.aborted) {
-            messages.value.pop()
-            errorMessage.value = '抱歉，发生了错误，请稍后重试。'
-        } else if (messages.value[messages.value.length - 1]?.content === '' && messages.value[messages.value.length - 1]?.reasoning === '') {
-            messages.value.pop()
-        }
-    } finally {
-        isLoading.value = false
-        abortController.value = null
-        await scrollToBottom()
-    }
 }
 </script>
