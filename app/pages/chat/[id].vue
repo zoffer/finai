@@ -18,13 +18,22 @@
                     'flex',
                     message.role === 'user' ? 'justify-end' : 'justify-start'
                 ]">
-                    <div :class="[
+                    <!-- 用户消息 -->
+                    <div v-if="message.role === 'user'" :class="[
                         'max-w-[85%] sm:max-w-[75%] px-4 py-2.5',
-                        message.role === 'user'
-                            ? 'bg-primary text-white rounded-2xl rounded-br-sm'
-                            : 'text-text'
+                        'bg-primary text-white rounded-2xl rounded-br-sm'
                     ]">
-                        <div v-if="message.role === 'assistant' && message.reasoning" class="mb-3">
+                        <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
+                            {{ message.content }}
+                        </div>
+                    </div>
+
+                    <!-- 助手消息 -->
+                    <div v-else-if="message.role === 'assistant'" :class="[
+                        'max-w-[85%] sm:max-w-[75%] px-4 py-2.5',
+                        'text-text'
+                    ]">
+                        <div v-if="message.reasoning" class="mb-3">
                             <button @click="message.showReasoning = !message.showReasoning"
                                 class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
                                 <svg :class="['w-3 h-3 transition-transform', message.showReasoning ? 'rotate-90' : '']"
@@ -39,8 +48,54 @@
                                 {{ message.reasoning }}
                             </div>
                         </div>
+
+                        <!-- 工具调用展示 -->
+                        <div v-if="message.toolCall" class="mb-3">
+                            <button @click="message.showToolCall = !message.showToolCall"
+                                class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
+                                <svg :class="['w-3 h-3 transition-transform', message.showToolCall ? 'rotate-90' : '']"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5l7 7-7 7" />
+                                </svg>
+                                <span>工具调用: {{ message.toolCall.toolName }}</span>
+                            </button>
+                            <div v-show="message.showToolCall"
+                                class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                <div class="text-xs text-text-muted">
+                                    <pre
+                                        class="whitespace-pre-wrap">{{ JSON.stringify(message.toolCall.input, null, 2) }}</pre>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
                             {{ message.content }}
+                        </div>
+                    </div>
+
+                    <!-- 工具结果消息 -->
+                    <div v-else-if="message.role === 'tool'" class="max-w-[85%] sm:max-w-[75%] px-4 py-2.5 text-text">
+                        <button @click="message.showToolResult = !message.showToolResult"
+                            class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
+                            <svg :class="['w-3 h-3 transition-transform', message.showToolResult ? 'rotate-90' : '']"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                            <span class="text-xs font-medium">
+                                {{ message.toolResult?.isError ? '工具错误' : '工具结果' }}: {{ message.toolResult?.toolName }}
+                            </span>
+                        </button>
+                        <div v-show="message.showToolResult" :class="[
+                            'rounded-lg p-3',
+                            message.toolResult?.isError
+                                ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'
+                                : 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800'
+                        ]">
+                            <div class="text-xs text-text-muted">
+                                <pre class="whitespace-pre-wrap">{{ message.content }}</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -131,18 +186,36 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, shallowRef, watch, nextTick } from 'vue'
+import { ref, shallowRef, watch, nextTick, onUnmounted, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { streamText, RetryError, APICallError } from 'ai'
+import { streamText, RetryError, APICallError, ToolLoopAgent } from 'ai'
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp'
 import { useAIProvider } from '@/composables/ai/provider'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
 
+interface ToolCall {
+    toolCallId: string
+    toolName: string
+    input: any
+}
+
+interface ToolResult {
+    toolCallId: string
+    toolName: string
+    result: any
+    isError?: boolean
+}
+
 interface Message {
     id: string
-    role: 'user' | 'assistant'
+    role: 'user' | 'assistant' | 'tool'
     content: string
     reasoning?: string
     showReasoning?: boolean
+    toolCall?: ToolCall
+    showToolCall?: boolean
+    toolResult?: ToolResult
+    showToolResult?: boolean
 }
 
 const ABORT_REASON = "user-stop"
@@ -155,6 +228,7 @@ const errorMessage = ref<string>('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const showModelMenu = ref(false)
 const abortController = shallowRef<AbortController | null>(null)
+const mcpClient = shallowRef<MCPClient | undefined>()
 
 const availableModels = ['GLM-4.5-Flash', 'GLM-4.7-Flash'] as const
 const selectedModel = ref<(typeof availableModels)[number]>('GLM-4.7-Flash')
@@ -163,6 +237,45 @@ const selectModel = (model: (typeof availableModels)[number]) => {
     selectedModel.value = model
     showModelMenu.value = false
 }
+
+// 初始化MCP客户端
+const initMCPClient = async () => {
+    try {
+        // 动态拼接URL，适应不同环境
+        const baseUrl = window.location.origin
+        mcpClient.value = await createMCPClient({
+            transport: {
+                type: 'http',
+                url: `${baseUrl}/mcp`
+            }
+        })
+    } catch (error) {
+        console.error('Failed to initialize MCP client:', error)
+    }
+}
+
+// 关闭MCP客户端
+const closeMCPClient = async () => {
+    if (mcpClient.value) {
+        try {
+            await mcpClient.value.close()
+        } catch (error) {
+            console.error('Failed to close MCP client:', error)
+        } finally {
+            mcpClient.value = undefined
+        }
+    }
+}
+
+// 组件挂载时初始化MCP客户端
+onMounted(async () => {
+    await initMCPClient()
+})
+
+// 组件卸载时关闭MCP客户端
+onUnmounted(() => {
+    closeMCPClient()
+})
 
 watch(input, () => {
     if (input.value.trim()) {
@@ -208,34 +321,123 @@ const sendMessage = async () => {
     isLoading.value = true
 
     try {
+        // 获取MCP工具
+        let tools = undefined
+        if (mcpClient.value) {
+            try {
+                tools = await mcpClient.value.tools()
+            } catch (error) {
+                console.error('Failed to get MCP tools:', error)
+            }
+        }
+
         abortController.value = new AbortController()
-        const result = streamText({
-            model: provider.chatModel(selectedModel.value),
-            messages: messages.value.map(m => ({
-                role: m.role,
+
+        // 准备消息历史，确保包含工具调用和结果
+        const prepareMessages = messages.value
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .map(m => ({
+                role: m.role as 'user' | 'assistant',
                 content: m.content
-            })),
-            abortSignal: abortController.value.signal,
-            maxRetries: 1,
+            }))
+
+        // 创建ToolLoopAgent实例
+        const agent = new ToolLoopAgent({
+            model: provider.chatModel(selectedModel.value),
+            tools: tools || {},
+            stopWhen: ({ steps }) => steps.length > 20, // 最多20步
         })
 
-        const assistantMessage: Message = {
-            id: generateId(),
-            role: 'assistant',
-            content: '',
-            reasoning: '',
-            showReasoning: true
-        }
-        messages.value.push(assistantMessage)
-        const msg = messages.value[messages.value.length - 1]!
         let hasError = false
+        let currentAssistantMessage: Message | null = null
+        let currentToolCallId: string | null = null
+
+        // 使用agent.stream()来获取流式响应
+        const result = await agent.stream({
+            messages: prepareMessages,
+            abortSignal: abortController.value.signal
+        })
 
         for await (const delta of result.fullStream) {
             if (delta.type === 'reasoning-delta') {
-                msg.reasoning += delta.text
+                if (!currentAssistantMessage) {
+                    // 先创建基本对象并push到数组中，确保响应式
+                    messages.value.push({
+                        id: generateId(),
+                        role: 'assistant',
+                        content: '',
+                        reasoning: delta.text,
+                        showReasoning: true
+                    })
+                    // 从数组中取出，确保操作的是响应式对象
+                    currentAssistantMessage = messages.value[messages.value.length - 1]!
+                } else {
+                    currentAssistantMessage.reasoning += delta.text
+                }
             } else if (delta.type === 'text-delta') {
-                msg.showReasoning = false
-                msg.content += delta.text
+                if (!currentAssistantMessage) {
+                    // 先创建基本对象并push到数组中，确保响应式
+                    messages.value.push({
+                        id: generateId(),
+                        role: 'assistant',
+                        content: delta.text,
+                        reasoning: '',
+                        showReasoning: false
+                    })
+                    // 从数组中取出，确保操作的是响应式对象
+                    currentAssistantMessage = messages.value[messages.value.length - 1]!
+                } else {
+                    currentAssistantMessage.showReasoning = false
+                    currentAssistantMessage.content += delta.text
+                }
+            } else if (delta.type === 'tool-call') {
+                // 工具调用开始
+                if (!currentAssistantMessage) {
+                    // 先创建基本对象并push到数组中，确保响应式
+                    messages.value.push({
+                        id: generateId(),
+                        role: 'assistant',
+                        content: '',
+                        reasoning: '',
+                        showReasoning: true,
+                        showToolCall: false,
+                        toolCall: {
+                            toolCallId: delta.toolCallId,
+                            toolName: delta.toolName,
+                            input: delta.input
+                        }
+                    })
+                    // 从数组中取出，确保操作的是响应式对象
+                    currentAssistantMessage = messages.value[messages.value.length - 1]!
+                } else {
+                    currentAssistantMessage.toolCall = {
+                        toolCallId: delta.toolCallId,
+                        toolName: delta.toolName,
+                        input: delta.input
+                    }
+                    currentAssistantMessage.showToolCall = false
+                }
+                currentToolCallId = delta.toolCallId
+            } else if (delta.type === 'tool-result') {
+                // 工具调用结果
+                if (currentToolCallId) {
+                    const toolResultMessage: Message = {
+                        id: generateId(),
+                        role: 'tool',
+                        content: JSON.stringify(delta.output, null, 2),
+                        toolResult: {
+                            toolCallId: currentToolCallId,
+                            toolName: delta.toolName,
+                            result: delta.output,
+                            isError: 'isError' in delta ? Boolean(delta.isError) : false
+                        },
+                        showToolResult: false
+                    }
+                    messages.value.push(toolResultMessage)
+                    currentToolCallId = null
+                    // 工具执行完成后，重置currentAssistantMessage，开启新一轮回复
+                    currentAssistantMessage = null
+                }
             } else if (delta.type === "error") {
                 hasError = true
                 let error = delta.error
@@ -252,10 +454,9 @@ const sendMessage = async () => {
             await scrollToBottom()
         }
 
-        if (hasError) {
+        if (hasError && currentAssistantMessage) {
             messages.value.pop()
         }
-
 
     } catch (error) {
         console.error('Chat error:', error, typeof error)

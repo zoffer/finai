@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.21",
     "@ai-sdk/openai-compatible": "^2.0.2",
     "@vueuse/core": "^14.2.0",
     "ai": "^6.0.6",
