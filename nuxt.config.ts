@@ -9,7 +9,7 @@ export default defineNuxtConfig({
         scan: false, // https://nuxt.com/docs/4.x/api/nuxt-config#scan
     },
 
-    css: ["./app/assets/global/css/design-tokens.css", "./app/assets/global/css/app.css"],
+    css: ["@/assets/global/css/design-tokens.css", "@/assets/global/css/app.css"],
 
     // https://nuxt.com/docs/4.x/api/nuxt-config#runtimeconfig-1
     vite: {
@@ -24,8 +24,4 @@ export default defineNuxtConfig({
     },
 
     modules: ["@nuxtjs/mcp-toolkit", "@nuxt/test-utils/module"],
-    mcp: {
-        name: "FinAI MCP Server",
-        route: "/mcp",
-    },
 });
