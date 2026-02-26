@@ -1,6 +1,6 @@
 <template>
     <textarea ref="textareaRef" v-model="model" :placeholder="placeholder" :disabled="disabled"
-        class="resize-none overflow-y-auto" @keydown.enter.exact.prevent @keyup.enter.exact="submit"></textarea>
+        class="resize-none overflow-y-auto" @keydown.enter.exact.prevent="submit"></textarea>
 </template>
 
 <script lang="ts" setup>
@@ -19,7 +19,8 @@ const props = withDefaults(defineProps<{
     disabled: false
 })
 
-const submit = () => {
+const submit = (e: KeyboardEvent) => {
+    if (e.isComposing) return
     emit('submit', model.value)
 }
 
