@@ -4,12 +4,14 @@
 
 ## 项目概述
 
-- **框架**: Nuxt.js 4 (Vue 3 + TypeScript)
-- **数据库**: PostgreSQL + Drizzle ORM
+- **框架**: Nuxt.js 4.2 (Vue 3.5 + TypeScript)
+- **数据库**: PostgreSQL + Drizzle ORM + pgvector (向量扩展)
 - **缓存**: Redis
 - **样式**: TailwindCSS v4
 - **测试**: Vitest
 - **定时任务**: cron
+- **AI 集成**: Vercel AI SDK + 智谱 AI / Cloudflare AI
+- **认证**: JWT (RS256)
 
 ## 核心命令
 
@@ -56,7 +58,7 @@ npm run db:generate            # 生成迁移文件
 **数据库表 (drizzle/schema)**
 
 - 导出常量使用驼峰命名：`tStock`, `tNews`, `tStockDynamicData`
-- 主键字段：`id` (text 或 uuid)
+- 主键字段：`id` (text 或 uuid，使用 `uuidv7()` 或 `customNanoid`)
 - 时间戳：`created_at`, `updated_at`（通过 `sqlTimestamps` 扩展）
 
 **API 路由 (server/api)**
@@ -136,11 +138,11 @@ defineApiEventHandler(async (event: H3Event<{ query: z.input<typeof zParameter> 
 **API 错误**
 
 - 使用 `ApiError` 类统一处理错误
-- 抛出 `ApiError` 而非普通异常
+- 返回 `ApiError` 实例而非抛出异常
 - 使用 `defineApiEventHandler` 自动包装错误处理
 
 ```typescript
-// 抛出错误
+// 返回错误
 return new ApiError({
     code: "invalid_parameter",
     message: z.prettifyError(result.error),
@@ -170,6 +172,17 @@ const stocks = await db
 
 // 操作符导入
 import { eq, desc, ilike, and, or, sql, gt } from "drizzle-orm";
+```
+
+**向量操作**
+
+```typescript
+// 使用 pgvector 进行向量搜索
+import { vector } from "drizzle-orm/pg-core";
+
+// 向量归一化
+import { L2Normalize } from "~~/server/utils/vector";
+const { norm, vector: normalizedVector } = L2Normalize(rawVector);
 ```
 
 ### Vue 组件规范
@@ -220,24 +233,108 @@ const emit = defineEmits<{
 
 ```
 app/                          # 前端应用
+├── assets/                   # 静态资源
+│   └── global/css/          # 全局样式
 ├── components/              # Vue 组件
-│   └── pages/              # 页面特定组件
-├── pages/                  # 页面路由
-├── plugins/                # Nuxt 插件
-└── utils/                  # 前端工具函数
+│   ├── lightweight-charts/  # 金融图表组件
+│   ├── pages/              # 页面特定组件
+│   └── ui/                 # 通用 UI 组件
+├── composables/             # 组合式函数
+│   ├── ai/                 # AI 相关
+│   └── notification/       # 通知相关
+├── pages/                   # 页面路由
+│   ├── chat/[id].vue      # 聊天页面
+│   ├── login/index.vue    # 登录页面
+│   ├── stock/view/[id].vue # 股票详情页
+│   └── index.vue          # 首页
+├── plugins/                 # Nuxt 插件
+└── utils/                   # 前端工具函数
 
 server/                       # 后端服务
-├── api/                    # API 路由处理程序
-├── plugins/                # Nitro 插件
-└── utils/                  # 服务端工具函数
+├── api/                     # API 路由处理程序
+│   ├── ai/gateway/         # AI 网关
+│   ├── auth/email/         # 邮箱认证
+│   ├── news/search/        # 新闻搜索
+│   └── stock/              # 股票相关 API
+├── assets/ai/prompts/       # AI 提示词模板
+├── mcp/tools/               # MCP 工具
+├── middleware/              # 中间件
+├── plugins/                 # Nitro 插件
+└── utils/                   # 服务端工具函数
+    ├── ai/provider/        # AI 提供商
+    ├── auth/               # 认证工具
+    ├── cache/              # 缓存工具
+    ├── data-source/        # 数据源爬取
+    ├── jwt/                # JWT 工具
+    ├── redis/              # Redis 工具
+    ├── task/               # 任务系统
+    └── vector/             # 向量工具
 
 drizzle/                      # 数据库
-├── schema/                 # 数据库模式定义
-└── migrate/                # 迁移文件
+├── schema/                  # 数据库模式定义
+│   ├── cache.ts            # API 缓存表
+│   ├── common.ts           # 公共字段
+│   ├── news.ts             # 新闻表
+│   ├── news_embedding.ts   # 新闻向量表
+│   ├── stock.ts            # 股票表
+│   └── user.ts             # 用户表
+└── migrate/                 # 迁移文件
 
-shared/                       # 共享代码
 test/                         # 测试文件
 ```
+
+## 数据库表结构
+
+### 股票相关
+
+- **stock**: 股票基本信息（代码、名称、交易所、行业、介绍）
+- **stock_dynamic_data**: 股票动态数据（价格、涨跌、成交量、热度分数）
+- **stock_keyword**: 股票关键词（关键词、权重）
+
+### 新闻相关
+
+- **news**: 新闻信息（标题、内容、日期）
+- **news_effect**: 新闻影响分析（关键词、影响值、置信度、原因）
+- **news_embedding\_\_\***: 新闻嵌入向量（支持多模型，使用 pgvector）
+
+### 用户相关
+
+- **user**: 用户信息（昵称、邮箱）
+
+### 缓存相关
+
+- **api_cache**: API 缓存（URL、数据）
+
+## 核心功能模块
+
+### 认证系统
+
+- JWT RS256 签名验证
+- 密钥自动轮换（每日）
+- 支持 Cookie 和 Bearer Token
+- 邮箱验证码登录
+
+### AI 功能
+
+- 智谱 AI (GLM-4.5-Flash, GLM-4.7-Flash)
+- Cloudflare AI
+- AI 网关代理
+- 新闻关键词分析
+- 股票关键词生成
+
+### 定时任务
+
+- 股票信息更新（每 6 小时）
+- 股票价格更新（交易时间每小时）
+- JWT 密钥轮换（每日 3:00）
+- 股票 AI 关键词生成（每 10 分钟）
+- 新闻爬取（每 10 分钟）
+
+### 数据爬取
+
+- 股票信息（上交所、深交所、北交所）
+- 股票实时价格
+- 财经新闻（财联社）
 
 ## 操作约束
 
@@ -266,6 +363,8 @@ test/                         # 测试文件
 6. **性能优化**: 使用 `useAsyncData` 的 `signal` 参数支持取消请求
 7. **环境隔离**: 开发使用 `.env.dev`，生产使用 `.env`
 8. **导入优化**: 使用 `~~/` 别名简化导入路径
+9. **向量归一化**: 存储向量前必须进行 L2 归一化
+10. **任务队列**: 使用 `p-queue` 管理并发任务
 
 ## 开发流程
 
