@@ -73,9 +73,7 @@
 
                             <!-- 文本内容 -->
                             <div v-else-if="part.type === 'text'" class="my-2">
-                                <span class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
-                                    {{ part.text }}
-                                </span>
+                                <MarkdownIt :markdown="part.text" class="text-sm sm:text-base leading-relaxed" />
                             </div>
                         </template>
                     </div>
@@ -192,6 +190,7 @@ import { ref, nextTick } from 'vue'
 import { watchThrottled } from "@vueuse/core"
 import { useFinaiAgent } from '@/composables/ai/agent/finai'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
+import MarkdownIt from '@/components/ui/MarkdownIt.vue'
 
 const input = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
