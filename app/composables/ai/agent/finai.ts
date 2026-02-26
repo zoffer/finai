@@ -83,7 +83,7 @@ export function useFinaiAgent() {
         abortController = new AbortController();
         for (let i = 0; i < maxSteps; i++) {
             const messagesData = messages.value.map((message) => handleMessage(message));
-            const { fullStream, finishReason } = await streamText({
+            const result = await streamText({
                 model: provider.chatModel(model),
                 messages: messagesData,
                 abortSignal: abortController.signal,
@@ -93,7 +93,7 @@ export function useFinaiAgent() {
             const assistantMessage = messages.value[messages.value.length - 1] as AssistantModelMessage;
             let reasoningPart: ReasoningPart | null = null;
             let textPart: TextPart | null = null;
-            for await (const part of fullStream) {
+            for await (const part of result.fullStream) {
                 switch (part.type) {
                     case "reasoning-start": {
                         assistantMessage.content.push({ type: "reasoning", text: "" });
@@ -134,39 +134,46 @@ export function useFinaiAgent() {
                         });
                         break;
                     }
-                    case "tool-result": {
-                        let output: ToolResultPart["output"];
-                        if (
-                            typeof part.output === "object" &&
-                            part.output !== null &&
-                            "content" in part.output &&
-                            part.output.content != null
-                        ) {
-                            output = { type: "content", value: part.output.content as Array<{ type: "text"; value: string }> };
-                        } else {
-                            output = { type: "text", value: String(part.output) };
-                        }
-                        messages.value.push({
-                            role: "tool",
-                            content: [
-                                {
-                                    type: "tool-result",
-                                    toolCallId: part.toolCallId,
-                                    toolName: part.toolName,
-                                    output,
-                                },
-                            ],
-                        });
-                        break;
-                    }
                 }
             }
-            if ((await finishReason) !== "tool-calls") {
+            const finishReason = await result.finishReason;
+            if (finishReason === "tool-calls") {
+                const content = await result.content;
+                const toolMessage: ToolModelMessage = {
+                    role: "tool",
+                    content: [],
+                };
+                for (const c of content) {
+                    if (c.type === "tool-result") {
+                        const toolOutput = c.output;
+                        let output: ToolResultPart["output"];
+                        if (typeof toolOutput === "string") {
+                            output = { type: "text", value: toolOutput };
+                        } else if (toolOutput != null && typeof toolOutput === "object" && "content" in toolOutput) {
+                            output = { type: "content", value: toolOutput.content as Array<{ type: "text"; value: string }> };
+                        } else {
+                            output = { type: "text", value: JSON.stringify(toolOutput) };
+                        }
+                        toolMessage.content.push({
+                            type: "tool-result",
+                            toolCallId: c.toolCallId,
+                            toolName: c.toolName,
+                            output,
+                        });
+                    }
+                }
+                messages.value.push(toolMessage);
+            } else {
+                console.log(finishReason);
+                if (finishReason === "error") {
+                    const rawFinishReason = await result.rawFinishReason;
+                    error.value = new Error(rawFinishReason || "未知错误");
+                }
                 break;
             }
         }
     };
-    const send = async (args: Parameters<typeof sendMessage>) => {
+    const send = async (...args: Parameters<typeof sendMessage>) => {
         status.value = "pending";
         error.value = null;
         try {

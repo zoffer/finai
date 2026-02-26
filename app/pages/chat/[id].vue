@@ -38,7 +38,7 @@
                             <!-- 思考过程 -->
                             <div v-if="part.type === 'reasoning'">
                                 <button @click="part.showReasoning = !part.showReasoning"
-                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors">
+                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
                                     <svg :class="['w-3 h-3 transition-transform', part.showReasoning ? 'rotate-90' : '']"
                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -47,7 +47,7 @@
                                     <span>思考过程</span>
                                 </button>
                                 <div v-show="part.showReasoning"
-                                    class="bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed">
+                                    class="bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
                                     {{ part.text }}
                                 </div>
                             </div>
@@ -64,7 +64,7 @@
                                     <span>工具调用: {{ part.toolName }}</span>
                                 </button>
                                 <div v-show="part.showToolCall"
-                                    class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2">
                                     <div class="text-xs text-text-muted">
                                         <pre class="whitespace-pre-wrap">{{ JSON.stringify(part.input, null, 2) }}</pre>
                                     </div>
@@ -72,7 +72,7 @@
                             </div>
 
                             <!-- 文本内容 -->
-                            <div v-else-if="part.type === 'text'" class="my-4">
+                            <div v-else-if="part.type === 'text'" class="my-2">
                                 <span class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
                                     {{ part.text }}
                                 </span>
@@ -81,7 +81,7 @@
                     </div>
 
                     <!-- 工具结果消息 -->
-                    <div v-else-if="message.role === 'tool'" class="max-w-[85%] sm:max-w-[75%] px-4 py-2.5 text-text">
+                    <div v-else-if="message.role === 'tool'" class="max-w-[85%] sm:max-w-[75%] px-4 text-text">
                         <template v-for="(part, partIndex) in message.content" :key="partIndex">
                             <div v-if="part.type === 'tool-result'">
                                 <button @click="part.showToolResult = !part.showToolResult"
@@ -96,7 +96,7 @@
                                     </span>
                                 </button>
                                 <div v-show="part.showToolResult"
-                                    class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                    class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-2">
                                     <div class="text-xs text-text-muted">
                                         <pre
                                             class="whitespace-pre-wrap">{{ typeof part.output === 'object' && part.output !== null ? JSON.stringify(part.output, null, 2) : String(part.output) }}</pre>
@@ -139,9 +139,10 @@
             </div>
 
             <footer class="flex-initial py-4">
-                <form @submit.prevent="sendMessage"
+                <form
                     class="bg-bg-surface rounded-2xl border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200">
-                    <AutoResizeTextarea v-model="input" :disabled="status === 'pending'"
+                    <AutoResizeTextarea name="message" v-model="input" :disabled="status === 'pending'"
+                        @submit="sendMessage"
                         class="w-full px-4 pt-3 pb-2 rounded-t-2xl border-0 focus:outline-none text-sm font-medium bg-transparent text-text placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[4em] max-h-[16em] resize-none" />
                     <div class="flex items-center justify-between px-3 pb-3">
                         <div class="relative">
@@ -166,22 +167,18 @@
                                 </button>
                             </div>
                         </div>
-                        <button :type="status === 'pending' ? 'button' : 'submit'"
-                            @click="status === 'pending' ? cancel() : undefined"
-                            :disabled="status === 'pending' || !input.trim()" :class="[
-                                'p-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
-                                'bg-primary hover:bg-primary/90 text-white'
-                            ]">
-                            <svg v-if="status !== 'pending'" class="w-4 h-4" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
+                        <button v-if="status !== 'pending'" type="button" @click="sendMessage" :disabled="!input.trim()"
+                            class="p-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90 text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
-                            <div v-else class="w-4 h-4 flex items-center justify-center">
-                                <svg class="w-3 h-3" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-                                    <rect width="16" height="16" x="4" y="4" />
-                                </svg>
-                            </div>
+                        </button>
+                        <button v-else type="button" @click="cancel()"
+                            class="p-2 rounded-full transition-all duration-200 bg-primary hover:bg-primary/90 text-white">
+                            <svg class="w-3 h-3" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                                <rect width="16" height="16" x="4" y="4" />
+                            </svg>
                         </button>
                     </div>
                 </form>
@@ -191,7 +188,8 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
+import { watchThrottled } from "@vueuse/core"
 import { useFinaiAgent } from '@/composables/ai/agent/finai'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
 
@@ -210,32 +208,14 @@ const selectModel = (model: (typeof availableModels)[number]) => {
     showModelMenu.value = false
 }
 
-watch(input, () => {
-    if (input.value.trim()) {
-        // 清除错误
-    }
-})
-
-const scrollToBottom = async () => {
-    await nextTick()
-    if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-}
-
-const clearError = () => {
-    // 错误处理由 useFinaiAgent 管理
-}
-
 const sendMessage = async () => {
-    clearError()
     const userMessage = input.value.trim()
     if (!userMessage || status.value === 'pending') return
 
     input.value = ''
 
     // 调用 useFinaiAgent 的 send 方法
-    await send([
+    await send(
         {
             role: 'user',
             content: [{
@@ -244,8 +224,23 @@ const sendMessage = async () => {
             }]
         },
         { model: selectedModel.value }
-    ])
+    )
 
-    await scrollToBottom()
 }
+
+const scrollToBottom = async () => {
+    await nextTick()
+    if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+}
+
+watchThrottled(messages, () => {
+    if (status.value === 'pending') {
+        scrollToBottom()
+    }
+}, {
+    throttle: 300,
+    deep: true
+})
 </script>

@@ -72,7 +72,7 @@ export default defineMcpTool({
     description: "使用向量搜索以找到与查询最相关的财联社电报内容。",
     inputSchema: {
         q: z.string().describe("搜索查询，用于查找相关新闻文章"),
-        limit: z.int().min(1).max(100).default(10).describe("返回的最大结果数（1-100，默认：10）"),
+        limit: z.int().min(1).max(100).default(32).describe("返回的最大结果数（1-100，默认：10）"),
         sortBy: z
             .enum(["similarity", "date"])
             .default("similarity")

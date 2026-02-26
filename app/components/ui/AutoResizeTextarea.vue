@@ -1,13 +1,15 @@
 <template>
-    <textarea ref="textareaRef" v-model="model" :placeholder="placeholder" :disabled="disabled" rows="1"
-        @input="autoResize" class="resize-none overflow-y-auto" :class="attrs.class"
-        :style="attrs.style as StyleValue" />
+    <textarea ref="textareaRef" v-model="model" :placeholder="placeholder" :disabled="disabled"
+        class="resize-none overflow-y-auto" @keydown.enter.exact.prevent @keyup.enter.exact="submit"></textarea>
 </template>
 
 <script lang="ts" setup>
-import type { StyleValue } from 'vue'
+import { useTemplateRef, watch, nextTick, onMounted } from 'vue'
 
 const model = defineModel<string>({ default: '' })
+const emit = defineEmits<{
+    (e: 'submit', value: string): void
+}>()
 
 const props = withDefaults(defineProps<{
     placeholder?: string
@@ -17,8 +19,11 @@ const props = withDefaults(defineProps<{
     disabled: false
 })
 
-const attrs = useAttrs()
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const submit = () => {
+    emit('submit', model.value)
+}
+
+const textareaRef = useTemplateRef('textareaRef')
 
 const autoResize = () => {
     const textarea = textareaRef.value
@@ -31,9 +36,9 @@ const autoResize = () => {
     textarea.style.height = `${newHeight}px`
 }
 
-watch(model, () => {
-    nextTick(autoResize)
+onMounted(() => {
+    watch(model, () => {
+        nextTick(autoResize)
+    }, { immediate: true })
 })
-
-onMounted(autoResize)
 </script>
