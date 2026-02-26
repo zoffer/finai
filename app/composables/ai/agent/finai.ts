@@ -66,15 +66,11 @@ type ModelMessage = SystemModelMessage | UserModelMessage | AssistantModelMessag
 
 export function useFinaiAgent() {
     const messages = ref<Array<ModelMessage>>([]);
-    const status = ref<"idle" | "pending" | "success" | "error">("idle");
+    const status = ref<"idle" | "pending" | "success" | "error" | "cancel">("idle");
     const error = ref<Error | unknown | null>(null);
     const provider = useAIProvider();
     const mcpClient = useMCPClient();
     let abortController: AbortController | null = null;
-    const cancel = () => {
-        abortController?.abort();
-        abortController = null;
-    };
     const sendMessage = async (message: UserModelMessage, options: { model: CHAT_MODEL_IDS; maxSteps?: number }) => {
         messages.value.push(message);
         const { model, maxSteps = 16 } = options;
@@ -167,11 +163,15 @@ export function useFinaiAgent() {
                 console.log(finishReason);
                 if (finishReason === "error") {
                     const rawFinishReason = await result.rawFinishReason;
-                    error.value = new Error(rawFinishReason || "未知错误");
+                    throw new Error(rawFinishReason || "未知错误");
                 }
                 break;
             }
         }
+    };
+    const cancel = () => {
+        abortController?.abort();
+        abortController = null;
     };
     const send = async (...args: Parameters<typeof sendMessage>) => {
         status.value = "pending";
@@ -180,8 +180,14 @@ export function useFinaiAgent() {
             await sendMessage(...args);
             status.value = "success";
         } catch (err) {
-            error.value = err;
-            status.value = "error";
+            console.error(err);
+            if (abortController === null || abortController.signal.aborted) {
+                error.value = null;
+                status.value = "cancel";
+            } else {
+                error.value = err;
+                status.value = "error";
+            }
         }
     };
     return { send, cancel, messages, status, error };

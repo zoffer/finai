@@ -1,7 +1,7 @@
 <template>
-    <div class="min-h-screen bg-bg flex flex-col">
-        <main class="flex-1 w-full h-screen max-h-screen max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
-            <div ref="messagesContainer" class="flex-1 overflow-y-auto">
+    <div class="min-h-screen bg-bg">
+        <main class="flex-1 w-full h-screen max-h-screen flex flex-col">
+            <div ref="messagesContainer" class="flex-1 overflow-y-auto px-6 sm:px-8 lg:px-10 py-6">
                 <div v-if="messages.length === 0"
                     class="flex flex-col items-center justify-center h-full text-center py-12">
                     <div class="w-16 h-16 mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -15,24 +15,33 @@
                 </div>
 
                 <div v-for="(message, index) in messages" :key="index" :class="[
-                    'flex',
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                    'flex flex-col',
+                    message.role === 'user' ? 'items-end' : 'items-start'
                 ]">
-                    <!-- 用户消息 -->
-                    <div v-if="message.role === 'user'" :class="[
-                        'max-w-[85%] sm:max-w-[75%] px-4 py-2.5',
-                        'bg-primary text-white rounded-2xl rounded-br-sm'
-                    ]">
-                        <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
-                            {{message.content.map((part) => part.text).join('')}}
+                    <template v-if="message.role === 'user'">
+                        <!-- 用户消息 -->
+                        <div
+                            class="max-w-[85%] sm:max-w-[75%] px-4 py-2.5 mb-8 bg-primary text-white rounded-2xl rounded-br-sm relative group">
+                            <div class="whitespace-pre-wrap wrap-break-words text-sm sm:text-base leading-relaxed">
+                                {{message.content.map((part) => part.text).join('')}}
+                            </div>
+                            <div v-if="status !== 'pending'"
+                                class="mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-full right-0">
+                                <!-- 重发按钮 -->
+                                <button @click="resendMessage(index)"
+                                    class="flex items-center justify-center gap-1 px-3 py-2 text-xs rounded-full hover:bg-primary/30 text-primary transition-colors sm:opacity-0 sm:group-hover:opacity-100 opacity-70"
+                                    title="重发消息">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </template>
 
                     <!-- 助手消息 -->
-                    <div v-else-if="message.role === 'assistant'" :class="[
-                        'max-w-[85%] sm:max-w-[75%] px-4',
-                        'text-text'
-                    ]">
+                    <div v-else-if="message.role === 'assistant'" class="max-w-[85%] sm:max-w-[75%] px-4 text-text">
                         <!-- 消息内容 -->
                         <template v-for="(part, partIndex) in message.content" :key="partIndex">
                             <!-- 思考过程 -->
@@ -136,11 +145,11 @@
                 </div>
             </div>
 
-            <footer class="flex-initial py-4">
+            <footer class="flex-initial px-6 sm:px-8 lg:px-10 pb-6">
                 <form
                     class="bg-bg-surface rounded-2xl border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200">
-                    <AutoResizeTextarea name="message" v-model="input" :disabled="status === 'pending'"
-                        @submit="sendMessage"
+                    <AutoResizeTextarea ref="messageInput" name="message" v-model="input"
+                        :disabled="status === 'pending'" @submit="sendMessage"
                         class="w-full px-4 pt-3 pb-2 rounded-t-2xl border-0 focus:outline-none text-sm font-medium bg-transparent text-text placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[4em] max-h-[16em] resize-none" />
                     <div class="flex items-center justify-between px-3 pb-3">
                         <div class="relative">
@@ -186,7 +195,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, useTemplateRef } from 'vue'
 import { watchThrottled } from "@vueuse/core"
 import { useFinaiAgent } from '@/composables/ai/agent/finai'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
@@ -194,6 +203,7 @@ import MarkdownIt from '@/components/ui/MarkdownIt.vue'
 
 const input = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
+const messageInput = useTemplateRef('messageInput')
 const showModelMenu = ref(false)
 
 // 使用 useFinaiAgent
@@ -225,6 +235,25 @@ const sendMessage = async () => {
         { model: selectedModel.value }
     )
 
+}
+
+const resendMessage = (index: number) => {
+    // 提取消息文本内容
+    const msg = messages.value[index]
+    // 将消息内容设置到输入框
+    if (!msg || msg.role !== 'user') {
+        return
+    }
+    for (const part of msg.content) {
+        error.value = null
+        input.value = part.text
+        messages.value = messages.value.slice(0, index)
+        nextTick(() => {
+            scrollToBottom()
+            messageInput.value?.$el.focus()
+        })
+        return
+    }
 }
 
 const scrollToBottom = async () => {
