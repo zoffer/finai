@@ -243,7 +243,7 @@ app/                          # 前端应用
 │   ├── ai/                 # AI 相关
 │   └── notification/       # 通知相关
 ├── pages/                   # 页面路由
-│   ├── chat/[id].vue      # 聊天页面
+│   ├── chat/index.vue      # 聊天页面
 │   ├── login/index.vue    # 登录页面
 │   ├── stock/view/[id].vue # 股票详情页
 │   └── index.vue          # 首页
