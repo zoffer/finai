@@ -100,7 +100,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
-                                    <span class="text-xs font-medium">
+                                    <span>
                                         工具结果: {{ part.toolName }}
                                     </span>
                                 </button>

@@ -28,11 +28,10 @@ function normalization(val: number, range: number) {
     return val / range || 0;
 }
 
-function calcHeatScore(item: DynamicData, visits_24h: number) {
+function calcHeatScore(item: DynamicData) {
     let score = 0;
-    score += 0.6 * normalization(Math.log(item.turnover + 1), 20); // 成交额分, log(1千亿) ~= 25
-    score += 0.3 * normalization((item.high - item.low) / item.open, 0.1); // 价格波动分
-    score += 0.1 * normalization(Math.log(visits_24h + 1), 5); // 24小时访问量分
+    score += 0.5 * normalization(Math.log(item.turnover + 1), 20); // 成交额分, log(1千亿) ~= 25
+    score += 0.5 * normalization((item.high - item.low) / item.open, 0.1); // 价格波动分
     return score;
 }
 
@@ -61,20 +60,19 @@ export const stockDbHelper = {
             .where(
                 inArray(
                     tStock.symbol,
-                    list.map((item) => item.symbol.toUpperCase())
-                )
+                    list.map((item) => item.symbol.toUpperCase()),
+                ),
             );
 
         const stockMap = new Map(stocks.map((stock) => [stock.exchange.toUpperCase() + stock.symbol.toUpperCase(), stock.id]));
 
-        const data: Array<
-            Omit<DynamicData, "symbol" | "exchange"> & { stock_id: string; visits_24h: number; heat_score: number }
-        > = [];
+        const data: Array<Omit<DynamicData, "symbol" | "exchange"> & { stock_id: string; heat_score: number }> = [];
 
         for (const item of list) {
-            const stockId = stockMap.get(item.exchange.toUpperCase() + item.symbol.toUpperCase());
+            const key = item.exchange.toUpperCase() + item.symbol.toUpperCase();
+            const stockId = stockMap.get(key);
             if (stockId) {
-                const visits_24h = await StockRankTool.v24h.count(stockId);
+                stockMap.delete(key);
                 data.push({
                     stock_id: stockId,
                     price: item.price,
@@ -86,31 +84,31 @@ export const stockDbHelper = {
                     volume: item.volume,
                     turnover: item.turnover,
                     market_data_time: item.market_data_time,
-                    visits_24h,
-                    heat_score: calcHeatScore(item, visits_24h),
+                    heat_score: calcHeatScore(item),
                 });
             }
         }
 
-        await db
-            .insert(tStockDynamicData)
-            .values(data)
-            .onConflictDoUpdate({
-                target: [tStockDynamicData.stock_id],
-                set: {
-                    price: sql`EXCLUDED.price`,
-                    open: sql`EXCLUDED.open`,
-                    high: sql`EXCLUDED.high`,
-                    low: sql`EXCLUDED.low`,
-                    change: sql`EXCLUDED.change`,
-                    change_percent: sql`EXCLUDED.change_percent`,
-                    volume: sql`EXCLUDED.volume`,
-                    turnover: sql`EXCLUDED.turnover`,
-                    market_data_time: sql`EXCLUDED.market_data_time`,
-                    visits_24h: sql`EXCLUDED.visits_24h`,
-                    heat_score: sql`EXCLUDED.heat_score`,
-                    updated_at: sql`NOW()`,
-                },
-            });
+        if (data.length > 0) {
+            await db
+                .insert(tStockDynamicData)
+                .values(data)
+                .onConflictDoUpdate({
+                    target: [tStockDynamicData.stock_id],
+                    set: {
+                        price: sql`EXCLUDED.price`,
+                        open: sql`EXCLUDED.open`,
+                        high: sql`EXCLUDED.high`,
+                        low: sql`EXCLUDED.low`,
+                        change: sql`EXCLUDED.change`,
+                        change_percent: sql`EXCLUDED.change_percent`,
+                        volume: sql`EXCLUDED.volume`,
+                        turnover: sql`EXCLUDED.turnover`,
+                        market_data_time: sql`EXCLUDED.market_data_time`,
+                        heat_score: sql`EXCLUDED.heat_score`,
+                        updated_at: sql`NOW()`,
+                    },
+                });
+        }
     },
 };

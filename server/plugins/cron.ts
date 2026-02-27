@@ -19,7 +19,7 @@ export default defineNitroPlugin(() => {
     CronJob.from({
         ...common,
         // 更新股票价格
-        cronTime: "0 0 8-18 * * *",
+        cronTime: "8 8 8-18 * * *",
         onTick: () => {
             TaskEmitter.emit("crawl/stock/price/all");
         },
