@@ -45,39 +45,51 @@
                         <!-- 消息内容 -->
                         <template v-for="(part, partIndex) in message.content" :key="partIndex">
                             <!-- 思考过程 -->
-                            <div v-if="part.type === 'reasoning'">
-                                <button @click="part.showReasoning = !part.showReasoning"
+                            <div v-if="part.type === 'reasoning'" class="group" :class="{ unfold: unfold.has(part) }">
+                                <button @click="toggleUnfold(part)"
                                     class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                    <svg class="w-3 h-3 transition-transform"
-                                        :class="[part.showReasoning ? 'rotate-90' : '']" fill="none"
+                                    <svg class="w-3 h-3 transition-transform group-[.unfold]:rotate-90" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
                                     <span>思考过程</span>
                                 </button>
-                                <div v-show="part.showReasoning"
-                                    class="bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
+                                <div
+                                    class="hidden group-[.unfold]:block bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
                                     {{ part.text }}
                                 </div>
                             </div>
 
+
                             <!-- 工具调用展示 -->
-                            <div v-else-if="part.type === 'tool-call'">
-                                <button @click="part.showToolCall = !part.showToolCall"
+                            <div v-else-if="part.type === 'tool-call'" class="group"
+                                :class="{ unfold: unfold.has(part) }">
+                                <button @click="toggleUnfold(part)"
                                     class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                    <svg class="w-3 h-3 transition-transform"
-                                        :class="[part.showToolCall ? 'rotate-90' : '']" fill="none"
+                                    <svg class="w-3 h-3 transition-transform group-[.unfold]:rotate-90" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
                                     <span>工具调用: {{ part.toolName }}</span>
                                 </button>
-                                <div v-show="part.showToolCall"
-                                    class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2">
+                                <div class="hidden group-[.unfold]:block bg-bg-surface rounded-lg p-3 mb-2">
                                     <div class="text-xs text-text-muted">
-                                        <pre class="whitespace-pre-wrap">{{ JSON.stringify(part.input, null, 2) }}</pre>
+                                        <div class="font-medium mb-1">输入参数</div>
+                                        <div class="p-2 bg-bg rounded overflow-auto max-h-40">
+                                            <ExpandableObject :value="part.input" />
+                                        </div>
+
+                                        <div v-if="toolCallResult[part.toolCallId] != null" class="mt-3">
+                                            <div class="border-t border-border pt-3">
+                                                <div class="font-medium mb-1">输出结果
+                                                </div>
+                                                <div class="p-2 bg-bg rounded overflow-auto max-h-40">
+                                                    <ToolCallOutput :output="toolCallResult[part.toolCallId]!.output" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -89,31 +101,6 @@
                         </template>
                     </div>
 
-                    <!-- 工具结果消息 -->
-                    <div v-else-if="message.role === 'tool'" class="px-4 text-text">
-                        <template v-for="(part, partIndex) in message.content" :key="partIndex">
-                            <div v-if="part.type === 'tool-result'">
-                                <button @click="part.showToolResult = !part.showToolResult"
-                                    class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                    <svg :class="['w-3 h-3 transition-transform', part.showToolResult ? 'rotate-90' : '']"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <span>
-                                        工具结果: {{ part.toolName }}
-                                    </span>
-                                </button>
-                                <div v-show="part.showToolResult"
-                                    class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-2">
-                                    <div class="text-xs text-text-muted">
-                                        <pre
-                                            class="whitespace-pre-wrap">{{ typeof part.output === 'object' && part.output !== null ? JSON.stringify(part.output, null, 2) : String(part.output) }}</pre>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
                 </div>
 
                 <div v-if="status === 'pending'" class="flex justify-start">
@@ -197,55 +184,61 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, nextTick, useTemplateRef } from 'vue'
+import { ref, nextTick, useTemplateRef, computed } from 'vue'
 import { watchThrottled } from "@vueuse/core"
-import { useFinaiAgent } from '@/composables/ai/agent/finai'
+import { useFinaiAgent, type ToolModelMessage } from '@/composables/ai/agent/finai'
 import AutoResizeTextarea from '@/components/ui/AutoResizeTextarea.vue'
 import MarkdownIt from '@/components/ui/MarkdownIt.vue'
+import ExpandableObject from '~/components/pages/chat/ExpandableObject.vue'
+import ToolCallOutput from '~/components/pages/chat/ToolCallOutput.vue'
 
 const input = ref('')
-const messagesContainer = ref<HTMLElement | null>(null)
-const messageInput = useTemplateRef('messageInput')
-const showModelMenu = ref(false)
 
-// 使用 useFinaiAgent
-const { send, cancel, messages, status, error } = useFinaiAgent()
+const unfold = ref(new WeakSet())
+const toggleUnfold = (part: WeakKey) => {
+    if (unfold.value.has(part)) {
+        unfold.value.delete(part)
+    } else {
+        unfold.value.add(part)
+    }
+}
 
 const availableModels = ['GLM-4.5-Flash', 'GLM-4.7-Flash'] as const
+const showModelMenu = ref(false)
 const selectedModel = ref<(typeof availableModels)[number]>('GLM-4.7-Flash')
-
 const selectModel = (model: (typeof availableModels)[number]) => {
     selectedModel.value = model
     showModelMenu.value = false
 }
 
+const messagesContainer = useTemplateRef('messagesContainer')
+const messageInput = useTemplateRef('messageInput')
+const scrollToBottom = async () => {
+    await nextTick()
+    if (messagesContainer.value) {
+        const element = messagesContainer.value
+        element.scrollTo({
+            top: element.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// 使用 useFinaiAgent
+const { send, cancel, messages, status, error } = useFinaiAgent()
 const sendMessage = async () => {
     const userMessage = input.value.trim()
     if (!userMessage || status.value === 'pending') return
-
     input.value = ''
-
     // 调用 useFinaiAgent 的 send 方法
     await send(
-        {
-            role: 'user',
-            content: [{
-                type: 'text',
-                text: userMessage
-            }]
-        },
-        { model: selectedModel.value }
+        { model: selectedModel.value },
+        { type: 'text', text: userMessage }
     )
-
 }
-
 const resendMessage = (index: number) => {
-    // 提取消息文本内容
     const msg = messages.value[index]
-    // 将消息内容设置到输入框
-    if (!msg || msg.role !== 'user') {
-        return
-    }
+    if (!msg || msg.role !== 'user') { return }
     for (const part of msg.content) {
         error.value = null
         input.value = part.text
@@ -258,19 +251,25 @@ const resendMessage = (index: number) => {
     }
 }
 
-const scrollToBottom = async () => {
-    await nextTick()
-    if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+const toolCallResult = computed(() => {
+    const kv: Record<string, ToolModelMessage["content"][number]> = {}
+    for (const msg of messages.value) {
+        if (msg.role === 'tool') {
+            for (const part of msg.content) {
+                if (part.type === 'tool-result') {
+                    kv[part.toolCallId] = part
+                }
+            }
+        }
     }
-}
+    return kv
+})
 
 watchThrottled(messages, () => {
-    if (status.value === 'pending') {
-        scrollToBottom()
-    }
+    scrollToBottom()
 }, {
     throttle: 300,
+    trailing: true,
     deep: true
 })
 </script>

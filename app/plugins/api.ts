@@ -1,3 +1,5 @@
+import { navigateToLogin } from "@/utils/router/login";
+
 export default defineNuxtPlugin((nuxtApp) => {
     const api = $fetch.create({
         onRequest({ request, options, error }) {
@@ -15,7 +17,7 @@ export default defineNuxtPlugin((nuxtApp) => {
             // 处理未授权错误（401）
             // 当用户未登录或登录过期时，重定向到登录页面
             if (response.status === 401) {
-                await nuxtApp.runWithContext(() => navigateTo("/login"));
+                await nuxtApp.runWithContext(() => navigateToLogin());
                 return;
             }
             const { _data: data } = response;

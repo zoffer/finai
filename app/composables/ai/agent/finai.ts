@@ -1,8 +1,9 @@
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
-import { streamText } from "ai";
+import { streamText, APICallError } from "ai";
 import { ref, shallowRef, onMounted, onUnmounted } from "vue";
 import { useAIProvider, type CHAT_MODEL_IDS } from "../provider";
 import { useRequestURL } from "#app";
+import { navigateToLogin } from "@/utils/router/login";
 
 interface TextPart {
     type: "text";
@@ -12,7 +13,6 @@ interface TextPart {
 interface ReasoningPart {
     type: "reasoning";
     text: string;
-    showReasoning?: boolean;
 }
 
 interface ToolCallPart {
@@ -20,10 +20,9 @@ interface ToolCallPart {
     toolCallId: string;
     toolName: string;
     input: unknown;
-    showToolCall?: boolean;
 }
 
-interface ToolResultPart {
+export interface ToolResultPart {
     type: "tool-result";
     toolCallId: string;
     toolName: string;
@@ -36,28 +35,27 @@ interface ToolResultPart {
               type: "content";
               value: Array<{
                   type: "text";
-                  value: string;
+                  text: string;
               }>;
           };
-    showToolResult?: boolean;
 }
 
-type SystemModelMessage = {
+export type SystemModelMessage = {
     role: "system";
     content: string;
 };
 
-type UserModelMessage = {
+export type UserModelMessage = {
     role: "user";
     content: Array<TextPart>;
 };
 
-type AssistantModelMessage = {
+export type AssistantModelMessage = {
     role: "assistant";
     content: Array<TextPart | ReasoningPart | ToolCallPart>;
 };
 
-type ToolModelMessage = {
+export type ToolModelMessage = {
     role: "tool";
     content: Array<ToolResultPart>;
 };
@@ -71,9 +69,16 @@ export function useFinaiAgent() {
     const provider = useAIProvider();
     const mcpClient = useMCPClient();
     let abortController: AbortController | null = null;
-    const sendMessage = async (message: UserModelMessage, options: { model: CHAT_MODEL_IDS; maxSteps?: number }) => {
-        messages.value.push(message);
-        const { model, maxSteps = 16 } = options;
+    const sendMessage = async (
+        options: { model: CHAT_MODEL_IDS; maxSteps?: number },
+        part: UserModelMessage["content"][0],
+        ...content: UserModelMessage["content"]
+    ) => {
+        messages.value.push({
+            role: "user",
+            content: [part, ...content],
+        });
+        const { model, maxSteps = Infinity } = options;
         const tools = await mcpClient.value?.tools();
         abortController?.abort();
         abortController = new AbortController();
@@ -84,6 +89,21 @@ export function useFinaiAgent() {
                 messages: messagesData,
                 abortSignal: abortController.signal,
                 tools,
+                async onError(event) {
+                    console.error(event);
+                    const { error: err } = event;
+                    if (err instanceof APICallError) {
+                        if (err.statusCode === 401) {
+                            await navigateToLogin();
+                        }
+                    }
+                    if (err instanceof Error) {
+                        error.value = err;
+                    } else {
+                        error.value = event;
+                    }
+                    status.value = "error";
+                },
             });
             messages.value.push({ role: "assistant", content: [] });
             const assistantMessage = messages.value[messages.value.length - 1] as AssistantModelMessage;
@@ -146,7 +166,7 @@ export function useFinaiAgent() {
                         if (typeof toolOutput === "string") {
                             output = { type: "text", value: toolOutput };
                         } else if (toolOutput != null && typeof toolOutput === "object" && "content" in toolOutput) {
-                            output = { type: "content", value: toolOutput.content as Array<{ type: "text"; value: string }> };
+                            output = { type: "content", value: toolOutput.content as Array<{ type: "text"; text: string }> };
                         } else {
                             output = { type: "text", value: JSON.stringify(toolOutput) };
                         }

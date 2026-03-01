@@ -83,6 +83,9 @@ import { navigateTo } from 'nuxt/app'
 import { z } from 'zod'
 import { useCountdown } from '@vueuse/core'
 import { useToast } from '@/composables/notification/toast'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const schema = z.object({
     email: z.email('请输入有效的邮箱地址').trim(),
@@ -178,8 +181,8 @@ const { execute: handleSubmit, pending: isSubmitting } = useAsyncData(async ({ $
             }
         })
 
-        toast.success(response.message || '登录成功，正在跳转...')
-        await navigateTo('/', { replace: true, })
+        const url = typeof route.query.referer === 'string' ? route.query.referer : '/'
+        await navigateTo(url || '/', { replace: true, })
     } catch (error: any) {
         toast.error(error?.data?.message || '登录失败，请检查验证码是否正确')
         console.error('登录失败:', error)
