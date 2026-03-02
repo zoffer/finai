@@ -4,7 +4,8 @@
     <PagesStockInfoHeader :data="stock" />
 
     <!-- Candlestick Chart Card -->
-    <LightweightChartsCandlestick class="w-full aspect-21/9 min-h-[300px] max-h-[66vh]" :data="history" />
+    <LightweightChartsCandlestick v-if="history && history.length > 0"
+      class="w-full aspect-21/9 min-h-[300px] max-h-[66vh]" :data="history" />
 
     <!-- Main Content -->
     <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
