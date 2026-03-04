@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-bg">
+    <div class="bg-bg">
         <main class="flex-1 w-full h-screen max-h-screen flex flex-col" style="height: 100dvh;">
             <div ref="messagesContainer" class="flex-1 overflow-y-auto px-6 sm:px-8 lg:px-10 py-6">
                 <div v-if="messages.length === 0"
