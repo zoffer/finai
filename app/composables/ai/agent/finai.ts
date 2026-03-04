@@ -1,5 +1,5 @@
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
-import { streamText, APICallError } from "ai";
+import { streamText, APICallError, RetryError } from "ai";
 import { ref, shallowRef, onMounted, onUnmounted } from "vue";
 import { useAIProvider, type CHAT_MODEL_IDS } from "../provider";
 import { useRequestURL } from "#app";
@@ -65,6 +65,7 @@ type ModelMessage = SystemModelMessage | UserModelMessage | AssistantModelMessag
 export function useFinaiAgent() {
     const messages = ref<Array<ModelMessage>>([]);
     const status = ref<"idle" | "pending" | "success" | "error" | "cancel">("idle");
+    const streamingPart = shallowRef<ModelMessage["content"][number] | null>(null);
     const error = ref<Error | unknown | null>(null);
     const provider = useAIProvider();
     const mcpClient = useMCPClient();
@@ -95,9 +96,10 @@ export function useFinaiAgent() {
                     if (err instanceof APICallError) {
                         if (err.statusCode === 401) {
                             await navigateToLogin();
+                            return;
                         }
-                    }
-                    if (err instanceof Error) {
+                        error.value = err;
+                    } else if (err instanceof Error) {
                         error.value = err;
                     } else {
                         error.value = event;
@@ -114,6 +116,7 @@ export function useFinaiAgent() {
                     case "reasoning-start": {
                         assistantMessage.content.push({ type: "reasoning", text: "" });
                         reasoningPart = assistantMessage.content[assistantMessage.content.length - 1] as ReasoningPart;
+                        streamingPart.value = reasoningPart;
                         break;
                     }
                     case "reasoning-delta": {
@@ -124,11 +127,13 @@ export function useFinaiAgent() {
                     }
                     case "reasoning-end": {
                         reasoningPart = null;
+                        streamingPart.value = null;
                         break;
                     }
                     case "text-start": {
                         assistantMessage.content.push({ type: "text", text: "" });
                         textPart = assistantMessage.content[assistantMessage.content.length - 1] as TextPart;
+                        streamingPart.value = textPart;
                         break;
                     }
                     case "text-delta": {
@@ -139,6 +144,7 @@ export function useFinaiAgent() {
                     }
                     case "text-end": {
                         textPart = null;
+                        streamingPart.value = null;
                         break;
                     }
                     case "tool-call": {
@@ -204,13 +210,16 @@ export function useFinaiAgent() {
             if (abortController === null || abortController.signal.aborted) {
                 error.value = null;
                 status.value = "cancel";
+            } else if (err instanceof RetryError) {
+                error.value = err.lastError;
+                status.value = "error";
             } else {
                 error.value = err;
                 status.value = "error";
             }
         }
     };
-    return { send, cancel, messages, status, error };
+    return { send, cancel, messages, status, error, streamingPart };
 }
 
 function handleMessage<T extends ModelMessage>(message: T): T {

@@ -45,19 +45,24 @@
                         <!-- 消息内容 -->
                         <template v-for="(part, partIndex) in message.content" :key="partIndex">
                             <!-- 思考过程 -->
-                            <div v-if="part.type === 'reasoning'" class="group" :class="{ unfold: unfold.has(part) }">
+                            <div v-if="part.type === 'reasoning'" class="group" :data-unfold="unfold.has(part)">
                                 <button @click="toggleUnfold(part)"
                                     class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                    <svg class="w-3 h-3 transition-transform group-[.unfold]:rotate-90" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3 h-3 transition-transform group-data-[unfold=true]:rotate-90"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
                                     <span>思考过程</span>
                                 </button>
                                 <div
-                                    class="hidden group-[.unfold]:block bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
+                                    class="hidden group-data-[unfold=true]:block bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
                                     {{ part.text }}
+                                </div>
+                                <!-- 流式传输时的部分展示 -->
+                                <div v-if="streamingPart === part && !unfold.has(part)"
+                                    class="rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
+                                    {{ getStreamingPreview(part.text) }}
                                 </div>
                             </div>
 
@@ -225,7 +230,7 @@ const scrollToBottom = async () => {
 }
 
 // 使用 useFinaiAgent
-const { send, cancel, messages, status, error } = useFinaiAgent()
+const { send, cancel, messages, status, error, streamingPart } = useFinaiAgent()
 const sendMessage = async () => {
     const userMessage = input.value.trim()
     if (!userMessage || status.value === 'pending') return
@@ -264,6 +269,10 @@ const toolCallResult = computed(() => {
     }
     return kv
 })
+
+const getStreamingPreview = (text: string) => {
+    return text.split('\n').filter((line) => line.trim() !== '').slice(-2).join('\n')
+}
 
 watchThrottled(messages, () => {
     scrollToBottom()
