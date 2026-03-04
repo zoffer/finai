@@ -14,10 +14,8 @@
                     <p class="text-text-muted text-sm">输入消息开始与 AI 助手交流</p>
                 </div>
 
-                <div v-for="(message, index) in messages" :key="index" :class="[
-                    'flex flex-col',
-                    message.role === 'user' ? 'items-end' : 'items-start'
-                ]">
+                <div v-for="(message, index) in messages" :key="index" class="flex flex-col"
+                    :class="[message.role === 'user' ? 'items-end' : 'items-start']">
                     <template v-if="message.role === 'user'">
                         <!-- 用户消息 -->
                         <div
@@ -41,7 +39,7 @@
                     </template>
 
                     <!-- 助手消息 -->
-                    <div v-else-if="message.role === 'assistant'" class="px-4 text-text">
+                    <div v-else-if="message.role === 'assistant'" class="px-4 text-text max-w-full">
                         <!-- 消息内容 -->
                         <template v-for="(part, partIndex) in message.content" :key="partIndex">
                             <!-- 思考过程 -->
@@ -53,33 +51,47 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
                                     <span>思考过程</span>
                                 </button>
                                 <div
-                                    class="hidden group-data-[unfold=true]:block bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
+                                    class="hidden group-data-[unfold=true]:block bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-word leading-relaxed mb-2">
                                     {{ part.text }}
                                 </div>
                                 <!-- 流式传输时的部分展示 -->
                                 <div v-if="streamingPart === part && !unfold.has(part)"
-                                    class="rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-words leading-relaxed mb-2">
-                                    {{ getStreamingPreview(part.text) }}
+                                    class="opacity-60 flex flex-col-reverse max-h-18 overflow-hidden bg-bg-surface/50 rounded-lg p-3 text-xs text-text-muted whitespace-pre-wrap wrap-break-word leading-relaxed mb-2">
+                                    {{ part.text }}
                                 </div>
                             </div>
 
 
                             <!-- 工具调用展示 -->
-                            <div v-else-if="part.type === 'tool-call'" class="group"
-                                :class="{ unfold: unfold.has(part) }">
+                            <div v-else-if="part.type === 'tool-call'" class="group" :data-unfold="unfold.has(part)">
                                 <button @click="toggleUnfold(part)"
                                     class="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors mb-2">
-                                    <svg class="w-3 h-3 transition-transform group-[.unfold]:rotate-90" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3 h-3 transition-transform group-data-[unfold=true]:rotate-90"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
                                     </svg>
+                                    <svg v-if="toolCallResult[part.toolCallId] == null" class="w-3 h-3" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                                     <span>工具调用: {{ part.toolName }}</span>
                                 </button>
-                                <div class="hidden group-[.unfold]:block bg-bg-surface rounded-lg p-3 mb-2">
+                                <div class="hidden group-data-[unfold=true]:block bg-bg-surface rounded-lg p-3 mb-2">
                                     <div class="text-xs text-text-muted">
                                         <div class="font-medium mb-1">输入参数</div>
                                         <div class="p-2 bg-bg rounded overflow-auto max-h-40">
@@ -269,10 +281,6 @@ const toolCallResult = computed(() => {
     }
     return kv
 })
-
-const getStreamingPreview = (text: string) => {
-    return text.split('\n').filter((line) => line.trim() !== '').slice(-2).join('\n')
-}
 
 watchThrottled(messages, () => {
     scrollToBottom()

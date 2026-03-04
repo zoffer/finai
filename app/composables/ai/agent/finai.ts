@@ -66,7 +66,7 @@ export function useFinaiAgent() {
     const messages = ref<Array<ModelMessage>>([]);
     const status = ref<"idle" | "pending" | "success" | "error" | "cancel">("idle");
     const streamingPart = shallowRef<ModelMessage["content"][number] | null>(null);
-    const error = ref<Error | unknown | null>(null);
+    const error = ref<Error | null>(null);
     const provider = useAIProvider();
     const mcpClient = useMCPClient();
     let abortController: AbortController | null = null;
@@ -92,19 +92,22 @@ export function useFinaiAgent() {
                 tools,
                 async onError(event) {
                     console.error(event);
-                    const { error: err } = event;
+                    let { error: err } = event;
+                    status.value = "error";
+                    if (err instanceof RetryError) {
+                        err = err.lastError;
+                    }
+                    if (err instanceof Error) {
+                        error.value = err;
+                    } else {
+                        error.value = new Error(JSON.stringify(err));
+                    }
                     if (err instanceof APICallError) {
                         if (err.statusCode === 401) {
                             await navigateToLogin();
                             return;
                         }
-                        error.value = err;
-                    } else if (err instanceof Error) {
-                        error.value = err;
-                    } else {
-                        error.value = event;
                     }
-                    status.value = "error";
                 },
             });
             messages.value.push({ role: "assistant", content: [] });
@@ -207,15 +210,20 @@ export function useFinaiAgent() {
             status.value = "success";
         } catch (err) {
             console.error(err);
+            if (error.value != null) {
+                status.value = "error";
+                return;
+            }
             if (abortController === null || abortController.signal.aborted) {
-                error.value = null;
                 status.value = "cancel";
-            } else if (err instanceof RetryError) {
-                error.value = err.lastError;
-                status.value = "error";
+                error.value = null;
             } else {
-                error.value = err;
                 status.value = "error";
+                if (err instanceof Error) {
+                    error.value = err;
+                } else {
+                    error.value = new Error(JSON.stringify(err));
+                }
             }
         }
     };
