@@ -50,7 +50,6 @@ export default defineNitroPlugin(() => {
     CronJob.from({
         ...common,
         cronTime: "3 3 3 * * *",
-        runOnInit: import.meta.dev,
         onTick: async () => {
             // 清理旧新闻
             await cleanNews();
