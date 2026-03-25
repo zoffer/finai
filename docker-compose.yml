@@ -54,6 +54,7 @@ services:
     <<: *bs
     image: ${DOCKER_REGISTRY}migrate:${TAG}
     container_name: finai-migrate
+    platform: linux/amd64
     build:
       context: .
       dockerfile: migrate.Dockerfile
@@ -70,6 +71,7 @@ services:
     <<: *bs
     image: ${DOCKER_REGISTRY}nuxt:${TAG}
     container_name: finai-nuxt
+    platform: linux/amd64
     build: .
     pull_policy: always
     restart: always
