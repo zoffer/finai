@@ -12,6 +12,10 @@ export default defineEventHandler(async (event) => {
         return;
     }
 
+    if (!url.pathname.startsWith("/api/ai")) {
+        return;
+    }
+
     try {
         await getAuth(event);
     } catch (error) {

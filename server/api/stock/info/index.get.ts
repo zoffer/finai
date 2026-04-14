@@ -66,7 +66,11 @@ export default defineApiEventHandler(async (event: H3Event<{ query: z.input<type
 
     // 处理查询结果
     const stock = stockData[0];
-    stock.keywords.sort((a, b) => b.weight - a.weight);
+    if (Array.isArray(stock.keywords)) {
+        stock.keywords.sort((a, b) => b.weight - a.weight);
+    } else {
+        stock.keywords = [];
+    }
 
     return {
         data: stock,
