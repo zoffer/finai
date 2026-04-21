@@ -7,7 +7,7 @@ import { tNews } from "~~/drizzle/schema/news";
 import { rd } from "~~/server/utils/redis/index";
 import { REDIS_KEYS, MESSAGE_QUEUE_KEY } from "~~/server/utils/redis/keys";
 
-const MAX_TRY = 16;
+const MAX_TRY = 3;
 const RECORD_KEY = REDIS_KEYS.news.keywordDeliverRecord;
 
 export function createNewsKeywordTaskUnit() {
