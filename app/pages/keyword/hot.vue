@@ -38,10 +38,11 @@
 
                 <div v-else class="p-4 sm:p-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div
+                        <NuxtLink
                             v-for="(item, index) in keywords"
                             :key="item.keyword"
-                            class="bg-bg-surface rounded-xl p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+                            :to="`/keyword/detail/${encodeURIComponent(item.keyword)}`"
+                            class="bg-bg-surface rounded-xl p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer block"
                         >
                             <div class="flex items-start justify-between mb-3">
                                 <div class="flex items-center gap-2">
@@ -51,6 +52,17 @@
                                     >
                                     <span class="font-bold text-text text-lg">{{ item.keyword }}</span>
                                 </div>
+                                <svg
+                                    class="text-text-muted/50 w-5 h-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
                             </div>
                             <div class="grid grid-cols-2 gap-4 text-sm">
                                 <div class="flex items-center gap-2">
@@ -94,7 +106,7 @@
                                     }}</span>
                                 </div>
                             </div>
-                        </div>
+                        </NuxtLink>
                     </div>
                 </div>
             </div>
@@ -112,7 +124,7 @@ type HotKeyword = {
 const { data: keywords, pending: isLoading } = useAsyncData(async ({ $api }, { signal }) => {
     const res = await $api("/api/news/keyword/hot", {
         signal,
-        query: { size: 30 },
+        query: { size: 60 },
     });
     return res.data as HotKeyword[];
 });
