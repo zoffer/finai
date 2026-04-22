@@ -27,10 +27,9 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path d="M10 13a5 5 0 0 0 7.54-.54A4 4 0 1 1 14 16h-4v-4z"></path>
-                            <path
-                                d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
                         </svg>
                     </div>
                     <p class="text-text font-medium text-base sm:text-lg">暂无关键词数据</p>
