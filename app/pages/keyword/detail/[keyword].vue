@@ -3,27 +3,7 @@
         <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8">
             <!-- Header -->
             <div class="bg-bg rounded-2xl shadow-md shadow-shadow p-4 sm:p-6 mb-6 sm:mb-8 transition-all duration-300">
-                <div class="flex items-center gap-4">
-                    <NuxtLink
-                        to="/keyword/hot"
-                        class="flex items-center gap-2 text-text-muted hover:text-text transition-colors"
-                    >
-                        <svg
-                            viewBox="0 0 24 24"
-                            width="20"
-                            height="20"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                        <span>返回</span>
-                    </NuxtLink>
-                </div>
-                <h1 class="text-xl sm:text-2xl font-bold text-text mt-4">{{ decodeURIComponent(keyword) }}</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-text">{{ decodeURIComponent(keyword) }}</h1>
                 <p class="text-text-muted mt-1 text-sm">相关新闻</p>
             </div>
 
